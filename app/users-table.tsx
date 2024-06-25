@@ -12,19 +12,31 @@ import { Button } from '@/components/ui/button';
 import { SelectUser } from '@/lib/db';
 import { deleteUser } from './actions';
 import { useRouter } from 'next/navigation';
+import useSWR from 'swr';
+import { Spinner } from '@/components/icons';
 
-export function UsersTable({
-  users,
-  offset
-}: {
-  users: SelectUser[];
-  offset: number | null;
-}) {
+const fetcher = (...args: any[]) => fetch(...args).then(res => res.json())
+function useUsers () {
+  const { data, error, isLoading } = useSWR(`/api/users`, fetcher)
+
+  return {
+    users: data?.users || [],
+    newOffset: data?.newOffset,
+    isLoading,
+    isError: error
+  }
+}
+
+export function UsersTable() {
   const router = useRouter();
+  const { users, newOffset, isLoading, isError } = useUsers();
+  const offset = 0;
 
   function onClick() {
-    router.replace(`/?offset=${offset}`);
+    router.replace(`/?offset=${newOffset}`);
   }
+
+  if (isLoading) return <Spinner />
 
   return (
     <>

@@ -1,4 +1,4 @@
-import { getUsers } from '@/lib/db';
+'use client';
 import { UsersTable } from './users-table';
 import { Search } from './search';
 
@@ -9,7 +9,8 @@ export default async function IndexPage({
 }) {
   const search = searchParams.q ?? '';
   const offset = searchParams.offset ?? 0;
-  const { users, newOffset } = await getUsers(search, Number(offset));
+  const users = [];
+  const newOffset = 0;
 
   return (
     <main className="flex flex-1 flex-col p-4 md:p-6">
@@ -19,7 +20,7 @@ export default async function IndexPage({
       <div className="w-full mb-4">
         <Search value={searchParams.q} />
       </div>
-      <UsersTable users={users} offset={newOffset} />
+      <UsersTable />
     </main>
   );
 }

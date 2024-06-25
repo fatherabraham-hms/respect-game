@@ -17,7 +17,8 @@ const users = pgTable('users', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 50 }),
   username: varchar('username', { length: 50 }),
-  email: varchar('email', { length: 50 })
+  email: varchar('email', { length: 50 }),
+  walletAddress: varchar('walletaddress', { length: 50 })
 });
 
 export type SelectUser = typeof users.$inferSelect;
