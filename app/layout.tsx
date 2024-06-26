@@ -1,23 +1,32 @@
-import './globals.css';
+'use client';
 
+import { ThirdwebProvider } from "thirdweb/react";
+import './globals.css';
 import Link from 'next/link';
 import { Analytics } from '@vercel/analytics/react';
 import { Logo, SettingsIcon, UsersIcon, VercelLogo } from '@/components/icons';
-import { User } from './user';
 import { NavItem } from './nav-item';
+import Connect from '@/components/ui/thirdweb-connect';
+import { SetStateAction, useState } from 'react';
+import { createContext } from 'react';
 
-export const metadata = {
-  title: 'Next.js App Router + NextAuth + Tailwind CSS',
-  description:
-    'A user admin dashboard configured with Next.js, Postgres, NextAuth, Tailwind CSS, TypeScript, and Prettier.'
-};
+const UserContext = createContext({ loggedIn: false, setLoggedIn: (value: SetStateAction<boolean>) => {}} );
+
+// export const metadata = {
+//   title: 'Next.js App Router + NextAuth + Tailwind CSS',
+//   description:
+//     'A user admin dashboard configured with Next.js, Postgres, NextAuth, Tailwind CSS, TypeScript, and Prettier.'
+// };
 
 export default function RootLayout({
   children
 }: {
   children: React.ReactNode;
 }) {
+  const [loggedIn, setLoggedIn] = useState(false);
   return (
+    <UserContext.Provider value={{ loggedIn, setLoggedIn }}>
+    <ThirdwebProvider>
     <html lang="en" className="h-full bg-gray-50">
       <body>
         <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
@@ -37,6 +46,10 @@ export default function RootLayout({
                   <NavItem href="/">
                     <UsersIcon className="h-4 w-4" />
                     Users
+                  </NavItem>
+                  <NavItem href="/play">
+                    <UsersIcon className="h-4 w-4" />
+                    Play!
                   </NavItem>
                   <NavItem href="/settings">
                     <SettingsIcon className="h-4 w-4" />
@@ -59,7 +72,8 @@ export default function RootLayout({
                 <Logo />
                 <span className="">ACME</span>
               </Link>
-              <User />
+              {/*<User />*/}
+              <Connect />
             </header>
             {children}
           </div>
@@ -67,5 +81,7 @@ export default function RootLayout({
         <Analytics />
       </body>
     </html>
+    </ThirdwebProvider>
+    </UserContext.Provider>
   );
 }
