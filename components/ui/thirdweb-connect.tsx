@@ -1,4 +1,5 @@
 import { ConnectButton } from 'thirdweb/react';
+import { base, optimism } from 'thirdweb/chains';
 // https://portal.thirdweb.com/connect/auth/frameworks/next
 import { client } from "@/lib/client";
 import {
@@ -21,7 +22,7 @@ export default function Connect() {
         await login(params);
       },
       getLoginPayload: async ({ address }) =>
-        generatePayload({ address }),
+        generatePayload({ address, chainId: base.id }),
       doLogout: async () => {
         console.log("logging out!");
         await logout();
