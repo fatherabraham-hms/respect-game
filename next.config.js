@@ -5,8 +5,8 @@ const ContentSecurityPolicy = `
   script-src 'self' 'unsafe-eval' 'unsafe-inline' *.thirdweb.com va.vercel-scripts.com;
   child-src *.thirdweb.com *.walletconnect.com;
   style-src 'self' 'unsafe-inline';
-  img-src blob: data: localhost:3000;
-  media-src *.s3.amazonaws.com;
+  img-src 'self' blob: data: localhost:3000;
+  media-src 'self' *.s3.amazonaws.com;
   connect-src *;
   font-src 'self';
   worker-src * blob: ws:;
