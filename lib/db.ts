@@ -60,3 +60,7 @@ export async function deleteUserById(id: number) {
 export async function setUserLoginStatusById(walletAddress: string, loggedIn: boolean) {
   await db.update(users).set({ loggedIn }).where(eq(users.walletAddress, walletAddress));
 }
+
+export async function getUserProfileByWalletAddress(walletAddress: string) {
+  return db.select().from(users).where(eq(users.walletAddress, walletAddress));
+}

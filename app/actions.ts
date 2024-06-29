@@ -1,6 +1,6 @@
 'use server';
 
-import { setUserLoginStatusById } from '@/lib/db';
+import { setUserLoginStatusById, getUserProfileByWalletAddress } from '@/lib/db';
 import { VerifyLoginPayloadParams, createAuth } from "thirdweb/auth";
 import { privateKeyAccount } from "thirdweb/wallets";
 import { client } from "@/lib/client";
@@ -45,10 +45,7 @@ export async function isLoggedIn() {
   }
 
   const authResult = await thirdwebAuth.verifyJWT({ jwt: jwt.value });
-  if (!authResult.valid) {
-    return false;
-  }
-  return true;
+  return authResult.valid;
 }
 
 export async function logout() {
