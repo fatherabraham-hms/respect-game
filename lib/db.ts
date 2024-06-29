@@ -2,7 +2,7 @@ import 'server-only';
 
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, boolean, date } from 'drizzle-orm/pg-core';
 import { eq, ilike } from 'drizzle-orm';
 
 export const db = drizzle(
@@ -18,7 +18,9 @@ const users = pgTable('users', {
   name: varchar('name', { length: 50 }),
   username: varchar('username', { length: 50 }),
   email: varchar('email', { length: 50 }),
-  walletAddress: varchar('walletaddress', { length: 50 })
+  walletAddress: varchar('walletaddress', { length: 50 }),
+  loggedIn: boolean('loggedin'),
+  lastLogin: date('lastlogin')
 });
 
 export type SelectUser = typeof users.$inferSelect;

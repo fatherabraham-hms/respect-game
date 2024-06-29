@@ -9,12 +9,12 @@ import {
   Table
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { SelectUser } from '@/lib/db';
 import { deleteUser } from './actions';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { Spinner } from '@/components/icons';
 import { User } from '@/lib/dtos/user.dto';
+
 
 const fetcher = (...args: any[]) => fetch(`/api/users`).then(res => res.json())
 function useUsers () {
@@ -72,7 +72,7 @@ export function UsersTable() {
   );
 }
 
-function UserRow({ user }: { user: SelectUser }) {
+function UserRow({ user }: { user: User }) {
   const userId = user.id;
   const deleteUserWithId = deleteUser.bind(null, userId);
 

@@ -4,4 +4,6 @@ export type User = {
   username: string;
   email: string;
   walletAddress: string;
+  loggedIn: boolean;
+  lastLogin: Date;
 }

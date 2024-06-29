@@ -5,7 +5,6 @@
 <a href="https://next-admin-dash.vercel.app/">Demo</a>
 <span> · </span>
 <a href="https://vercel.com/templates/next.js/admin-dashboard-tailwind-postgres-react-nextjs">Clone & Deploy</a>
-<span>
 </div>
 
 ## Overview
@@ -35,7 +34,10 @@ CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   email VARCHAR(255) NOT NULL,
   name VARCHAR(255),
-  username VARCHAR(255)
+  username VARCHAR(255),
+  walletaddress VARCHAR(255),
+  isLogged BOOLEAN DEFAULT FALSE,
+  lastLogin TIMESTAMP,
 );
 ```
 

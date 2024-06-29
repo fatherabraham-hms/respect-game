@@ -4,12 +4,14 @@
     "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "jest"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.9.3",
     "@radix-ui/react-slot": "^1.0.2",
     "@tailwindcss/forms": "^0.5.7",
+    "@types/jest": "^29.5.12",
     "@types/node": "20.12.11",
     "@types/react": "18.3.2",
     "@types/react-dom": "18.3.0",
@@ -34,6 +36,7 @@
     "tailwindcss": "^3.4.3",
     "tailwindcss-animate": "^1.0.7",
     "thirdweb": "^5.29.6",
+    "ts-node": "^10.9.2",
     "typescript": "5.4.5"
   },
   "prettier": {
@@ -41,5 +44,15 @@
     "singleQuote": true,
     "tabWidth": 2,
     "trailingComma": "none"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.24.7",
+    "@babel/preset-react": "^7.24.7",
+    "@babel/preset-typescript": "^7.24.7",
+    "@jest/globals": "^29.7.0",
+    "babel-jest": "^29.7.0",
+    "jest": "^29.7.0",
+    "react-test-renderer": "^18.3.1",
+    "ts-jest": "^29.1.5"
   }
 }
