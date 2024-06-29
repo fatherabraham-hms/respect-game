@@ -3,7 +3,7 @@ import 'server-only';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { pgTable, serial, varchar, boolean, date } from 'drizzle-orm/pg-core';
-import { eq, ilike } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 export const db = drizzle(
   neon(process.env.POSTGRES_URL!, {
@@ -38,7 +38,7 @@ export async function getUsers(
       users: await db
         .select()
         .from(users)
-        .where(ilike(users.name, `%${search}%`))
+        .where(eq(users.loggedIn, true))
         .limit(1000),
       newOffset: null
     };
@@ -55,4 +55,8 @@ export async function getUsers(
 
 export async function deleteUserById(id: number) {
   await db.delete(users).where(eq(users.id, id));
+}
+
+export async function setUserLoginStatusById(walletAddress: string, loggedIn: boolean) {
+  await db.update(users).set({ loggedIn }).where(eq(users.walletAddress, walletAddress));
 }

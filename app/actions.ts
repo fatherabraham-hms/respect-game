@@ -1,13 +1,13 @@
 'use server';
 
-import { deleteUserById } from '@/lib/db';
-import { revalidatePath } from 'next/cache';
+import { setUserLoginStatusById } from '@/lib/db';
 import { VerifyLoginPayloadParams, createAuth } from "thirdweb/auth";
 import { privateKeyAccount } from "thirdweb/wallets";
 import { client } from "@/lib/client";
 import { cookies } from "next/headers";
 
 const privateKey = process.env.THIRDWEB_ADMIN_PRIVATE_KEY || "";
+let loggedInUserWalletAddress: string = '';
 
 if (!privateKey) {
   throw new Error("Missing THIRDWEB_ADMIN_PRIVATE_KEY in .env file.");
@@ -18,8 +18,6 @@ const thirdwebAuth = createAuth({
   adminAccount: privateKeyAccount({ client, privateKey }),
   client: client,
 });
-
-// export const generatePayload = thirdwebAuth.generatePayload;
 
 export async function generatePayload(param: { address: string, chainId: number}) {
   param.chainId = 1;
@@ -33,6 +31,10 @@ export async function login(payload: VerifyLoginPayloadParams) {
       payload: verifiedPayload.payload,
     });
     cookies().set("jwt", jwt);
+    if (verifiedPayload?.payload?.address) {
+      loggedInUserWalletAddress = verifiedPayload.payload.address;
+      await setUserLoginStatusById(verifiedPayload.payload.address, true);
+    }
   }
 }
 
@@ -51,6 +53,7 @@ export async function isLoggedIn() {
 
 export async function logout() {
   cookies().delete("jwt");
+  await setUserLoginStatusById(loggedInUserWalletAddress, false);
 }
 
 export async function deleteUser(userId: number) {
