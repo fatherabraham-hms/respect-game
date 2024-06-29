@@ -3,7 +3,7 @@
 const ContentSecurityPolicy = `
   default-src 'self' *.thirdweb.com va.vercel-scripts.com;
   script-src 'self' 'unsafe-eval' 'unsafe-inline' *.thirdweb.com va.vercel-scripts.com;
-  child-src *.thirdweb.com;
+  child-src *.thirdweb.com *.walletconnect.com;
   style-src 'self' 'unsafe-inline';
   img-src blob: data: localhost:3000;
   media-src *.s3.amazonaws.com;

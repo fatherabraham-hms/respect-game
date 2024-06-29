@@ -6,11 +6,9 @@ import Link from 'next/link';
 import { Analytics } from '@vercel/analytics/react';
 import { Logo } from '@/components/icons';
 import Connect from '@/components/ui/thirdweb-connect';
-import { SetStateAction, useState } from 'react';
-import { UserContext } from '@/app/login/user-context';
+import { useState } from 'react';
 import { NavSidebar } from '@/components/app-shell/nav-sidebar';
 import { Login } from '@/app/login/Login';
-import { Button } from '@/components/ui/button';
 
 // export const metadata = {
 //   title: 'Next.js App Router + NextAuth + Tailwind CSS',
@@ -25,13 +23,7 @@ export default function RootLayout({
 }) {
   const [loggedIn, setLoggedIn] = useState(false);
 
-  const toggleLogin = () => {
-    console.log('toggling login');
-    setLoggedIn(!loggedIn);
-  }
-
   return (
-    <UserContext.Provider value={{ loggedIn, setLoggedIn }}>
     <ThirdwebProvider>
     <html lang="en" className="h-full bg-gray-50">
       <body>
@@ -48,7 +40,6 @@ export default function RootLayout({
                 </Link>
               </div>
               <div className="flex-1 overflow-auto py-2">
-                <Button onClick={toggleLogin}>Toggle Login</Button>
                 { loggedIn && (
                   <NavSidebar />
                 )}
@@ -70,7 +61,7 @@ export default function RootLayout({
               loggedIn ? (
                 <>{children}</>
               ) : (
-                <Login />
+                <Login setLoggedIn={setLoggedIn} />
               )
             }
 
@@ -80,6 +71,5 @@ export default function RootLayout({
       </body>
     </html>
     </ThirdwebProvider>
-    </UserContext.Provider>
   );
 }

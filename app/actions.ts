@@ -34,6 +34,7 @@ export async function login(payload: VerifyLoginPayloadParams) {
     if (verifiedPayload?.payload?.address) {
       loggedInUserWalletAddress = verifiedPayload.payload.address;
       await setUserLoginStatusById(verifiedPayload.payload.address, true);
+      return verifiedPayload.payload.address;
     }
   }
 }
@@ -51,6 +52,20 @@ export async function isLoggedIn() {
 export async function logout() {
   cookies().delete("jwt");
   await setUserLoginStatusById(loggedInUserWalletAddress, false);
+}
+
+export async function getUserProfile(address: string) {
+  console.log('getUserProfile');
+  const jwt = cookies().get("jwt");
+  if (!jwt?.value) {
+    return null;
+  }
+
+  const authResult = await thirdwebAuth.verifyJWT({ jwt: jwt.value });
+  if (!authResult.valid) {
+    return null;
+  }
+  return await getUserProfileByWalletAddress(address);
 }
 
 export async function deleteUser(userId: number) {

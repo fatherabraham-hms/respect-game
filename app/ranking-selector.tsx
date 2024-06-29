@@ -17,6 +17,7 @@ function useUsers () {
     isError: error
   }
 }
+// TODO: https://tailwindcomponents.com/component/radio-buttons
 
 export function RankingSelector({ session, setSession }: { session: ConsensusSessionDto, setSession: (session: ConsensusSessionDto) => void }) {
   const [rankings, setRankings] = useState({});
