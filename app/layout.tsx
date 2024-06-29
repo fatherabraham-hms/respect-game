@@ -4,15 +4,13 @@ import { ThirdwebProvider } from "thirdweb/react";
 import './globals.css';
 import Link from 'next/link';
 import { Analytics } from '@vercel/analytics/react';
-import { Logo, SettingsIcon, UsersIcon, VercelLogo } from '@/components/icons';
-import { NavItem } from './nav-item';
+import { Logo } from '@/components/icons';
 import Connect from '@/components/ui/thirdweb-connect';
 import { SetStateAction, useState } from 'react';
-import { createContext } from 'react';
+import { UserContext } from '@/app/login/user-context';
 import { NavSidebar } from '@/components/app-shell/nav-sidebar';
 import { Login } from '@/app/login/Login';
-
-const UserContext = createContext({ loggedIn: false, setLoggedIn: (value: SetStateAction<boolean>) => {}} );
+import { Button } from '@/components/ui/button';
 
 // export const metadata = {
 //   title: 'Next.js App Router + NextAuth + Tailwind CSS',
@@ -26,6 +24,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const [loggedIn, setLoggedIn] = useState(false);
+
+  const toggleLogin = () => {
+    console.log('toggling login');
+    setLoggedIn(!loggedIn);
+  }
+
   return (
     <UserContext.Provider value={{ loggedIn, setLoggedIn }}>
     <ThirdwebProvider>
@@ -44,6 +48,7 @@ export default function RootLayout({
                 </Link>
               </div>
               <div className="flex-1 overflow-auto py-2">
+                <Button onClick={toggleLogin}>Toggle Login</Button>
                 { loggedIn && (
                   <NavSidebar />
                 )}

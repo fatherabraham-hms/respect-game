@@ -1,14 +1,14 @@
 /** @type {import('next').NextConfig} */
 // You might need to insert additional domains in script-src if you are using external services
 const ContentSecurityPolicy = `
-  default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline' giscus.app analytics.umami.is;
+  default-src 'self' *.thirdweb.com va.vercel-scripts.com;
+  script-src 'self' 'unsafe-eval' 'unsafe-inline' *.thirdweb.com va.vercel-scripts.com;
+  child-src *.thirdweb.com;
   style-src 'self' 'unsafe-inline';
-  img-src * blob: data:;
+  img-src blob: data: localhost:3000;
   media-src *.s3.amazonaws.com;
   connect-src *;
   font-src 'self';
-  frame-src giscus.app;
   worker-src * blob: ws:;
 `
 

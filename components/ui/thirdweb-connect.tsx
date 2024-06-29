@@ -8,10 +8,18 @@ import {
   login,
   logout,
 } from "@/app/actions";
+import { useContext } from 'react';
+import { Wallet } from 'thirdweb/src/wallets/interfaces/wallet';
+import { UserContext } from '@/app/login/user-context';
 
 export default function Connect() {
+  const userContext = useContext(UserContext);
   return <ConnectButton
     client={client}
+    onConnect={async (wallet: Wallet) => {
+      //userContext.setLoggedIn(true);
+      console.log('logged in!');
+    }}
     auth={{
       isLoggedIn: async (address) => {
         console.log("checking if logged in!", { address });
