@@ -36,7 +36,7 @@ CREATE TABLE users (
   name VARCHAR(255),
   username VARCHAR(255),
   walletaddress VARCHAR(255),
-  isLogged BOOLEAN DEFAULT FALSE,
+  loggedIn BOOLEAN DEFAULT FALSE,
   lastLogin TIMESTAMP,
 );
 ```
@@ -44,7 +44,7 @@ CREATE TABLE users (
 Insert a row for testing:
 
 ```
-INSERT INTO users (id, email, name, username) VALUES (1, 'me@site.com', 'Me', 'username');
+INSERT INTO users (email, name, username, walletaddress, loggedIn, lastLogin) VALUES ('user1@fake.com', 'Mad Hatter', 'hatter123', '0x12345', true, NOW());
 ```
 
 Copy the `.env.example` file to `.env` and update the values.
