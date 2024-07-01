@@ -9,12 +9,12 @@ import { UserRanking } from '@/lib/dtos/user-ranking.dto';
 // TODO: https://tailwindcomponents.com/component/radio-buttons
 
 export function RankingSelector({ session, setSession }: { session: ConsensusSessionDto, setSession: (session: ConsensusSessionDto) => void }) {
-  const [rankings, setRankings] = useState<{ [index: number]: UserRanking }>({});
+  const [votingRound, setVotingRound] = useState<{ [index: number]: UserRanking }>({});
   const [currentRankNumber, setCurrentRankNumber] = useState(session.rankingScheme === 'numeric-descending' ? 6 : 1);
 
   // STATE
   function checkConsensusReached() {
-    const totalVotes = Object.values(rankings).reduce((acc, ranking) => acc + ranking.votes, 0);
+    const totalVotes = Object.values(votingRound).reduce((acc, ranking) => acc + ranking.votes, 0);
     const attendees = session.attendees.length;
     return totalVotes >= attendees * .75;
   }
@@ -34,50 +34,67 @@ export function RankingSelector({ session, setSession }: { session: ConsensusSes
       return;
     }
 
-    let existingRanking = rankings[currentRankNumber];
+
+    let existingRanking = votingRound[currentRankNumber];
+    const rankingsCopy = { ...votingRound };
+
     // if they are not yet ranked, add them with 0 votes
-    if (!existingRanking) {
-      rankings[currentRankNumber] = {
+    if (typeof existingRanking?.id === 'undefined') {
+      rankingsCopy[currentRankNumber] = {
         ...user,
         votes: 0
       };
-      existingRanking = rankings[currentRankNumber];
+    // if they are already ranked, update their votes
+    } else if (existingRanking?.id === user.id) {
+      rankingsCopy[currentRankNumber] = { ...user, votes: existingRanking.votes };
+    } else {
+      rankingsCopy[currentRankNumber] = { ...user, votes: existingRanking.votes };
     }
 
     if (attestation === 'upvote') {
-      existingRanking.votes++;
+      rankingsCopy[currentRankNumber].votes = 1;
     } else if (attestation === 'downvote') {
-      existingRanking.votes <= 1 ? existingRanking.votes = 0 : existingRanking.votes--;
+      rankingsCopy[currentRankNumber].votes = 0;
     }
-    setRankings(rankings);
+    setVotingRound(rankingsCopy);
   }
 
   function nextLevel() {
+    const winner = getWinner();
     const nextRankNumber = session.rankingScheme === 'numeric-descending' ? currentRankNumber - 1 : currentRankNumber + 1;
     setCurrentRankNumber(nextRankNumber);
+    const updatedRankings = { ...votingRound };
+    updatedRankings[currentRankNumber] = winner as UserRanking;
     setSession({
       ...session,
-      rankings: {}
+      rankings: updatedRankings
     });
   }
 
   // UTILS
-  function calculateRankingPercentage(user: User) {
-    const totalVotes = Object.values(rankings).reduce((acc, ranking) => acc + ranking.votes, 0);
-    const userRanking = rankings[currentRankNumber]?.walletAddress === user.walletAddress ? rankings[currentRankNumber] : null;
+  const getWinner = () => {
+    const totalVotes = Object.values(votingRound).reduce((acc, ranking) => acc + ranking.votes, 0);
+    const winner = Object.values(votingRound).reduce((acc, ranking) => ranking.votes > acc.votes ? ranking : acc, { votes: 0 });
+    return winner.votes >= totalVotes * .75 ? winner : null
+  }
+
+  const calculateRankingPercentage = (user: User) => {
+    const totalVotes = Object.values(votingRound).reduce((acc, ranking) => acc + ranking.votes, 0);
+    const userRanking = votingRound[currentRankNumber]?.walletAddress === user.walletAddress ? votingRound[currentRankNumber] : null;
     if (!userRanking) {
       return 0;
     }
     return (userRanking.votes / totalVotes) * 100;
   }
 
-  function calculateRankingFractionOfTwelve(user: User) {
-    const totalVotes = Object.values(rankings).reduce((acc, ranking) => acc + ranking.votes, 0);
-    const userRanking = rankings[currentRankNumber]?.walletAddress === user.walletAddress ? rankings[currentRankNumber] : null;
+  const calculateRankingFractionOfTwelve = (user: User) => {
+    const totalVotes = Object.values(votingRound).reduce((acc, ranking) => acc + ranking.votes, 0);
+    const userRanking = votingRound[currentRankNumber]?.walletAddress === user.walletAddress ? votingRound[currentRankNumber] : null;
     if (!userRanking) {
       return 0;
     }
-    return Math.round((userRanking.votes / totalVotes) * 12);
+    const rounded = Math.round((userRanking.votes / totalVotes) * 12);
+    return rounded === 12 ? 'full' : `${rounded}/12`;
   }
 
   // <pre>Rankings: { JSON.stringify(rankings[currentRankNumber], null, 2) }</pre>
@@ -112,7 +129,7 @@ export function RankingSelector({ session, setSession }: { session: ConsensusSes
               <div className="flex w-full h-2 bg-gray-200 rounded-full overflow-hidden dark:bg-neutral-700"
                    role="progressbar">
                 <div
-                  className={`w-${calculateRankingFractionOfTwelve(user)}/12 flex flex-col justify-center rounded-full overflow-hidden bg-blue-600 text-xs text-white text-center whitespace-nowrap transition duration-500 dark:bg-blue-500`}
+                  className={`w-${calculateRankingFractionOfTwelve(user)} flex flex-col justify-center rounded-full overflow-hidden bg-blue-600 text-xs text-white text-center whitespace-nowrap transition duration-500 dark:bg-blue-500`}
                 ></div>
               </div>
             </div>
