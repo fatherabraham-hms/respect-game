@@ -9,7 +9,6 @@ import {
   Table
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { deleteUser } from './actions';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { Spinner } from '@/components/icons';
@@ -55,7 +54,7 @@ export function UsersTable() {
           </TableHeader>
           <TableBody>
             {users.map((user: User) => (
-              <UserRow key={user.id} user={user} />
+              <UserRow key={user.walletAddress} user={user} />
             ))}
           </TableBody>
         </Table>
@@ -74,8 +73,7 @@ export function UsersTable() {
 }
 
 function UserRow({ user }: { user: User }) {
-  const userId = user.id;
-  const deleteUserWithId = deleteUser.bind(null, userId);
+
 
   return (
     <TableRow>
@@ -86,15 +84,15 @@ function UserRow({ user }: { user: User }) {
         <span>{user.loggedIn.toString() }</span>
       </TableCell>
       <TableCell>
-        <Button
-          className="w-full"
-          size="sm"
-          variant="outline"
-          formAction={deleteUserWithId}
-          disabled
-        >
-          Delete
-        </Button>
+        {/*<Button*/}
+        {/*  className="w-full"*/}
+        {/*  size="sm"*/}
+        {/*  variant="outline"*/}
+        {/*  formAction={deleteUserWithPublicId}*/}
+        {/*  disabled*/}
+        {/*>*/}
+        {/*  Delete*/}
+        {/*</Button>*/}
         {/*<div>*/}
         {/*  <div*/}
         {/*    className="inline-block mb-2 ms-[calc(25%-1.25rem)] py-0.5 px-1.5 bg-blue-50 border border-blue-200 text-xs font-medium text-blue-600 rounded-lg dark:bg-blue-800/30 dark:border-blue-800 dark:text-blue-500">*/}

@@ -38,6 +38,7 @@ CREATE TABLE users (
   walletaddress VARCHAR(255),
   loggedIn BOOLEAN DEFAULT FALSE,
   lastLogin TIMESTAMP,
+  permissions INT2 DEFAULT 0,
 );
 ```
 

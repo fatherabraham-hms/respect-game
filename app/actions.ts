@@ -6,6 +6,8 @@ import { privateKeyAccount } from "thirdweb/wallets";
 import { client } from "@/lib/client";
 import { cookies } from "next/headers";
 
+/*********** THIRDWEB AUTHENTICATION ***********/
+
 const privateKey = process.env.THIRDWEB_ADMIN_PRIVATE_KEY || "";
 let loggedInUserWalletAddress: string = '';
 
@@ -68,8 +70,12 @@ export async function getUserProfile(address: string) {
   return await getUserProfileByWalletAddress(address);
 }
 
-export async function deleteUser(userId: number) {
+export async function deleteUser(walletAddr: string) {
   // Uncomment this to enable deletion
   // await deleteUserById(userId);
   // revalidatePath('/');
+}
+
+/*********** CONSENSUS SESSIONS ***********/
+export async function createConsensusSession() {
 }

@@ -19,11 +19,11 @@ export function RankingSelector({ session, setSession }: { session: ConsensusSes
     return totalVotes >= attendees * .75;
   }
 
-  function setRanking(userId: number, attestation: 'upvote' | 'downvote') {
-    if (!userId || !attestation) {
+  function setRanking(walletAddress: string, attestation: 'upvote' | 'downvote') {
+    if (!walletAddress || !attestation) {
       return;
     }
-    const user = session.attendees.find((user) => user.id === userId);
+    const user = session.attendees.find((user) => user.walletAddress === walletAddress);
     if (user && session.rankingScheme === 'numeric-descending') {
       handleNumericVote(user, attestation);
     }
@@ -39,13 +39,13 @@ export function RankingSelector({ session, setSession }: { session: ConsensusSes
     const rankingsCopy = { ...votingRound };
 
     // if they are not yet ranked, add them with 0 votes
-    if (typeof existingRanking?.id === 'undefined') {
+    if (typeof existingRanking?.walletAddress === 'undefined') {
       rankingsCopy[currentRankNumber] = {
         ...user,
         votes: 0
       };
     // if they are already ranked, update their votes
-    } else if (existingRanking?.id === user.id) {
+    } else if (existingRanking?.walletAddress === user.walletAddress) {
       rankingsCopy[currentRankNumber] = { ...user, votes: existingRanking.votes };
     } else {
       rankingsCopy[currentRankNumber] = { ...user, votes: existingRanking.votes };
@@ -113,9 +113,9 @@ export function RankingSelector({ session, setSession }: { session: ConsensusSes
         {/*<pre>Session: {JSON.stringify(session, null, 2)}</pre>*/}
         {session?.attendees?.map((user: User) => (
           // <pre>{JSON.stringify(user, null, 2)}</pre>
-          <div key={user.id} className={'flex items-center'}>
+          <div key={user.walletAddress} className={'flex items-center'}>
             <div className={'flex-grow-0 p-4'}>
-              <input type={'radio'} name={'rankings'} value={'upvote'} onChange={() => setRanking(user.id, 'upvote')} />
+              <input type={'radio'} name={'rankings'} value={'upvote'} onChange={() => setRanking(user.walletAddress, 'upvote')} />
             </div>
             <div className="w-full p-4 border-b dark:border-neutral-700">
               <div>
