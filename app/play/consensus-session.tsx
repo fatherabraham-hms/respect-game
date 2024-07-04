@@ -4,6 +4,7 @@ import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
 import { RankingSelector } from '@/app/ranking-selector';
 import useSWR from 'swr';
 import { Button } from '@/components/ui/button';
+import { createConsensusSessionAction } from '@/app/actions';
 
 export function ConsensusSession() {
   const [currentSession, setCurrentSession] = useState({
@@ -28,9 +29,11 @@ export function ConsensusSession() {
   const { users } = useUsers();
 
   function handleStartSession() {
-    setCurrentSession({
-      ...currentSession,
-      attendees: users
+    createConsensusSessionAction(currentSession).then(() => {
+      setCurrentSession({
+        ...currentSession,
+        attendees: users
+      });
     });
   }
 

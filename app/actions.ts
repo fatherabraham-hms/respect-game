@@ -1,6 +1,11 @@
 'use server';
 
-import { setUserLoginStatusById, getUserProfileByWalletAddress } from '@/lib/db';
+import {
+  setUserLoginStatusById,
+  getUserProfileByWalletAddress,
+  createConsensusSession,
+  ConsensusSessionDto
+} from '@/lib/db';
 import { VerifyLoginPayloadParams, createAuth } from "thirdweb/auth";
 import { privateKeyAccount } from "thirdweb/wallets";
 import { client } from "@/lib/client";
@@ -9,7 +14,7 @@ import { cookies } from "next/headers";
 /*********** THIRDWEB AUTHENTICATION ***********/
 
 const privateKey = process.env.THIRDWEB_ADMIN_PRIVATE_KEY || "";
-let loggedInUserWalletAddress: string = '';
+let LOGGED_IN_WALLET_ADDR: string | undefined = undefined;
 
 if (!privateKey) {
   throw new Error("Missing THIRDWEB_ADMIN_PRIVATE_KEY in .env file.");
@@ -34,7 +39,7 @@ export async function login(payload: VerifyLoginPayloadParams) {
     });
     cookies().set("jwt", jwt);
     if (verifiedPayload?.payload?.address) {
-      loggedInUserWalletAddress = verifiedPayload.payload.address;
+      LOGGED_IN_WALLET_ADDR = verifiedPayload.payload.address;
       await setUserLoginStatusById(verifiedPayload.payload.address, true);
       return verifiedPayload.payload.address;
     }
@@ -46,18 +51,19 @@ export async function isLoggedIn() {
   if (!jwt?.value) {
     return false;
   }
-
   const authResult = await thirdwebAuth.verifyJWT({ jwt: jwt.value });
   return authResult.valid;
 }
 
 export async function logout() {
   cookies().delete("jwt");
-  await setUserLoginStatusById(loggedInUserWalletAddress, false);
+  if (LOGGED_IN_WALLET_ADDR) {
+    await setUserLoginStatusById(LOGGED_IN_WALLET_ADDR, false);
+  }
+  LOGGED_IN_WALLET_ADDR = undefined;
 }
 
 export async function getUserProfile(address: string) {
-  console.log('getUserProfile');
   const jwt = cookies().get("jwt");
   if (!jwt?.value) {
     return null;
@@ -76,6 +82,26 @@ export async function deleteUser(walletAddr: string) {
   // revalidatePath('/');
 }
 
+async function isAdminLoggedIn(): Promise<boolean> {
+  if (!LOGGED_IN_WALLET_ADDR) {
+    return false;
+  }
+  const userProfile: any = await getUserProfile(LOGGED_IN_WALLET_ADDR);
+  if (!userProfile) {
+    return false;
+  }
+  if(userProfile.permissions < 1) {
+    return false;
+  }
+  return true;
+}
+
 /*********** CONSENSUS SESSIONS ***********/
-export async function createConsensusSession() {
+export async function createConsensusSessionAction(session: ConsensusSessionDto) {
+  if (Object.keys(session)?.length === 0) {
+    throw new Error("Session is empty");
+  }
+  const allowedTo = await isAdminLoggedIn();
+  // return allowedTo ? createConsensusSession(session) : new Promise((resolve, reject) => reject("Not allowed to create session"));
+  return createConsensusSession(session);
 }

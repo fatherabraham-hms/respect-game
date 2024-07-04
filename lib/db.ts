@@ -72,7 +72,15 @@ export async function setUserLoginStatusById(walletAddress: string, loggedIn: bo
 }
 
 export async function getUserProfileByWalletAddress(walletAddress: string) {
-  return db.select().from(users).where(eq(users.walletAddress, walletAddress));
+  return db.select({
+    name: users.name,
+    username: users.username,
+    email: users.email,
+    walletAddress: users.walletAddress,
+    loggedIn: users.loggedIn,
+    lastLogin: users.lastLogin,
+    permissions: users.permissions
+  }).from(users).where(eq(users.walletAddress, walletAddress));
 }
 
 // CREATE TABLE consensus_sessions (sessionid SERIAL PRIMARY KEY, sessiontype VARCHAR(255), rankingLimit INT, title VARCHAR(255), description TEXT, status VARCHAR(255), adminid INT, created DATETIME, updated DATETIME);

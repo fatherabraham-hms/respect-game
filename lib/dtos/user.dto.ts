@@ -5,4 +5,5 @@ export type User = {
   walletAddress: string;
   loggedIn: boolean;
   lastLogin: Date;
+  permissions: number;
 }
