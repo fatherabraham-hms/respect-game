@@ -11,6 +11,7 @@ import { UserRanking } from '@/lib/dtos/user-ranking.dto';
 export function RankingSelector({ session, setSession }: { session: ConsensusSessionDto, setSession: (session: ConsensusSessionDto) => void }) {
   const [votingRound, setVotingRound] = useState<{ [index: number]: UserRanking }>({});
   const [currentRankNumber, setCurrentRankNumber] = useState(session.rankingScheme === 'numeric-descending' ? 6 : 1);
+  const [currentUserHasVoted, setCurrentUserHasVoted] = useState(false);
 
   // STATE
   function checkConsensusReached() {
@@ -33,7 +34,6 @@ export function RankingSelector({ session, setSession }: { session: ConsensusSes
     if (!user || !attestation) {
       return;
     }
-
 
     let existingRanking = votingRound[currentRankNumber];
     const rankingsCopy = { ...votingRound };

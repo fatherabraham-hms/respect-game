@@ -8,10 +8,9 @@ import {
   login,
   logout
 } from '@/app/actions';
-
-import { Wallet } from 'thirdweb/src/wallets/interfaces/wallet';
 import { useRouter } from 'next/navigation';
 
+// TODO: possible future direction https://docs.passport.xyz/, https://help.guild.xyz/en/articles/6947626-guild-sdk
 
 interface ConnectProps {
   setLoggedIn?: ((value: (((prevState: boolean) => boolean) | boolean)) => void) | undefined;

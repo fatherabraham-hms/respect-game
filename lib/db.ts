@@ -103,5 +103,13 @@ export async function getConsensusSessions() {
 }
 
 export async function createConsensusSession(session: ConsensusSessionDto) {
-  return db.insert(consensusSessions).values(session);
+  return db.insert(consensusSessions).values({
+    sessionId: undefined,
+    sessionType: 'ranking-consensus',
+    rankingLimit: session.rankingLimit,
+    title: session.title,
+    description: session.description,
+    status: session.status,
+    adminId: session.adminId,
+  });
 }

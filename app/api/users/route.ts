@@ -1,4 +1,4 @@
-"use-server";
+"use server";
 import { getUsers, SelectUser } from '@/lib/db';
 
 export async function GET(req: Request) {

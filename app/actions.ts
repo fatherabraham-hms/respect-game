@@ -102,6 +102,8 @@ export async function createConsensusSessionAction(session: ConsensusSessionDto)
     throw new Error("Session is empty");
   }
   const allowedTo = await isAdminLoggedIn();
-  // return allowedTo ? createConsensusSession(session) : new Promise((resolve, reject) => reject("Not allowed to create session"));
+  if (!allowedTo) {
+    throw new Error("Not allowed to create session");
+  }
   return createConsensusSession(session);
 }
