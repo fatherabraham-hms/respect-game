@@ -10,8 +10,7 @@ import { VerifyLoginPayloadParams, createAuth } from "thirdweb/auth";
 import { privateKeyAccount } from "thirdweb/wallets";
 import { client } from "@/lib/client";
 import { cookies } from "next/headers";
-import { getServerSession, resetServerSession, setServerSession } from '../data/session/server_session';
-
+import ServerSessionSingleton from '../data/session/server_session';
 
 /*********** THIRDWEB AUTHENTICATION ***********/
 
@@ -27,6 +26,8 @@ const thirdwebAuth = createAuth({
   client: client,
 });
 
+const serverSession = ServerSessionSingleton.getInstance();
+
 export async function generatePayload(param: { address: string, chainId: number}) {
   param.chainId = 1;
   return await thirdwebAuth.generatePayload(param);
@@ -40,9 +41,7 @@ export async function login(payload: VerifyLoginPayloadParams) {
     });
     cookies().set("jwt", jwt);
     if (verifiedPayload?.payload?.address) {
-      await setServerSession({
-        loggedInWalletAddress: verifiedPayload.payload.address,
-      });
+      serverSession.setLoggedInWalletAddress(verifiedPayload.payload.address);
       await setUserLoginStatusById(verifiedPayload.payload.address, true);
       return verifiedPayload.payload.address;
     }
@@ -60,14 +59,11 @@ export async function isLoggedIn() {
 
 export async function logout() {
   cookies().delete("jwt");
-  getServerSession().then((session) => {
-    if (session?.loggedInWalletAddress) {
-      setUserLoginStatusById(session?.loggedInWalletAddress, false);
+  const loggedInWalletAddress = serverSession.getLoggedInWalletAddress();
+    if (loggedInWalletAddress) {
+      await setUserLoginStatusById(loggedInWalletAddress, false);
     }
-    resetServerSession();
-  });
-
-  // LOGGED_IN_WALLET_ADDR = undefined;
+  serverSession.resetLoggedInWalletAddress();
 }
 
 export async function getUserProfile(address: string) {
@@ -91,9 +87,8 @@ export async function deleteUser(walletAddr: string) {
 
 export async function isLoggedInUserAdmin(): Promise<boolean> {
   const admins = process.env.RESPECT_GAME_ADMINS?.split(",") || [];
-  const serverSession = await getServerSession();
-  const loggedInWalletAddress = serverSession?.loggedInWalletAddress;
-  if (!loggedInWalletAddress?.length) {
+  const loggedInWalletAddress = serverSession.getLoggedInWalletAddress();
+  if (!loggedInWalletAddress) {
     return false;
   }
   const userProfile: any = await getUserProfile(loggedInWalletAddress);
@@ -111,9 +106,9 @@ export async function createConsensusSessionAction(session: ConsensusSessionDto)
   if (Object.keys(session)?.length === 0) {
     throw new Error("Session is empty");
   }
-  const isAdmin = await isLoggedInUserAdmin();
-  if (!isAdmin) {
-    throw new Error("Not allowed to create session");
-  }
+  // const isAdmin = await isLoggedInUserAdmin();
+  // if (!isAdmin) {
+  //   throw new Error("Not allowed to create session");
+  // }
   return createConsensusSession(session);
 }

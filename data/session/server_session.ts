@@ -4,23 +4,33 @@ export interface ServerSession {
   loggedInWalletAddress: string;
 }
 
-const storage = {
-  serverSession: {
-    loggedInWalletAddress: '',
+class ServerSessionSingleton {
+  private static instance: ServerSessionSingleton;
+  private loggedInWalletAddress: string;
+
+  private constructor() {
+    this.loggedInWalletAddress = '';
   }
-}; // this does not persist between backend calls - need to figure out how to make persistent
 
-export async function getServerSession(): Promise<ServerSession> {
-  return storage.serverSession;
-}
+  public static getInstance(): ServerSessionSingleton {
+    if (!ServerSessionSingleton.instance) {
+      ServerSessionSingleton.instance = new ServerSessionSingleton();
+    }
 
-export async function setServerSession(session: ServerSession) {
-  return storage.serverSession = session;
-}
+    return ServerSessionSingleton.instance;
+  }
 
-export async function resetServerSession() {
-  storage.serverSession = {
-    loggedInWalletAddress: '',
+  public getLoggedInWalletAddress(): string {
+    return this.loggedInWalletAddress;
+  }
+
+  public setLoggedInWalletAddress(loggedInWalletAddress: string) {
+    this.loggedInWalletAddress = loggedInWalletAddress;
+  }
+
+  public resetLoggedInWalletAddress() {
+    this.loggedInWalletAddress = '';
   }
 }
 
+export default ServerSessionSingleton;
