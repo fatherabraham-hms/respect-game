@@ -82,7 +82,9 @@ export async function deleteUser(walletAddr: string) {
   // revalidatePath('/');
 }
 
-async function isAdminLoggedIn(): Promise<boolean> {
+export async function isLoggedInUserAdmin(): Promise<boolean> {
+  const admins = process.env.RESPECT_GAME_ADMINS?.split(",") || [];
+
   if (!LOGGED_IN_WALLET_ADDR) {
     return false;
   }
@@ -90,7 +92,7 @@ async function isAdminLoggedIn(): Promise<boolean> {
   if (!userProfile) {
     return false;
   }
-  if(userProfile.permissions < 1) {
+  if (!admins?.some((addr) => addr === LOGGED_IN_WALLET_ADDR)) {
     return false;
   }
   return true;
@@ -101,8 +103,8 @@ export async function createConsensusSessionAction(session: ConsensusSessionDto)
   if (Object.keys(session)?.length === 0) {
     throw new Error("Session is empty");
   }
-  const allowedTo = await isAdminLoggedIn();
-  if (!allowedTo) {
+  const isAdmin = await isLoggedInUserAdmin();
+  if (!isAdmin) {
     throw new Error("Not allowed to create session");
   }
   return createConsensusSession(session);

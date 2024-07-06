@@ -1,10 +1,11 @@
 "use client";
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
 import { RankingSelector } from '@/app/ranking-selector';
 import useSWR from 'swr';
 import { Button } from '@/components/ui/button';
 import { createConsensusSessionAction } from '@/app/actions';
+import { AuthContext } from '../../data/context/Contexts';
 
 export function ConsensusSession() {
   const [currentSession, setCurrentSession] = useState({
@@ -28,6 +29,8 @@ export function ConsensusSession() {
   }
   const { users } = useUsers();
 
+  const authContext = useContext(AuthContext);
+
   function handleStartSession() {
     createConsensusSessionAction(currentSession).then(() => {
       setCurrentSession({
@@ -38,9 +41,9 @@ export function ConsensusSession() {
   }
 
   return (
-   currentSession.attendees.length === 0 ?
+   currentSession.attendees.length === 0 && authContext.isAdmin ?
      (
-       <Button className="bg-fuchsia-400" onClick={handleStartSession}>Start Session!</Button>
+         <Button className="bg-fuchsia-400" onClick={handleStartSession}>Start Session!</Button>
      ) :
       (
         <RankingSelector

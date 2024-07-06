@@ -9,6 +9,7 @@ import Connect from '@/components/ui/thirdweb-connect';
 import { useState } from 'react';
 import { NavSidebar } from '@/components/app-shell/nav-sidebar';
 import { Login } from '@/app/login/Login';
+import { AuthContext } from '../data/context/Contexts';
 
 // export const metadata = {
 //   title: 'Next.js App Router + NextAuth + Tailwind CSS',
@@ -21,9 +22,13 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [loggedIn, setLoggedIn] = useState(true);
+  const [authContext, setAuthContext] = useState({
+    isLoggedIn: false,
+    isAdmin: false,
+  });
 
   return (
+    <AuthContext.Provider value={{ ...authContext, setAuthContext }}>
     <ThirdwebProvider>
     <html lang="en" className="h-full bg-gray-50">
       <body>
@@ -40,7 +45,7 @@ export default function RootLayout({
                 </Link>
               </div>
               <div className="flex-1 overflow-auto py-2">
-                { loggedIn && (
+                { authContext?.isLoggedIn && (
                   <NavSidebar />
                 )}
               </div>
@@ -58,10 +63,10 @@ export default function RootLayout({
               <Connect />
             </header>
             {
-              loggedIn ? (
+              authContext?.isLoggedIn ? (
                 <>{children}</>
               ) : (
-                <Login setLoggedIn={setLoggedIn} />
+                <Login />
               )
             }
 
@@ -71,5 +76,6 @@ export default function RootLayout({
       </body>
     </html>
     </ThirdwebProvider>
+    </AuthContext.Provider>
   );
 }
