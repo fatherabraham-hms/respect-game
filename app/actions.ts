@@ -10,11 +10,12 @@ import { VerifyLoginPayloadParams, createAuth } from "thirdweb/auth";
 import { privateKeyAccount } from "thirdweb/wallets";
 import { client } from "@/lib/client";
 import { cookies } from "next/headers";
+import { getServerSession, resetServerSession, setServerSession } from '../data/session/server_session';
+
 
 /*********** THIRDWEB AUTHENTICATION ***********/
 
 const privateKey = process.env.THIRDWEB_ADMIN_PRIVATE_KEY || "";
-let LOGGED_IN_WALLET_ADDR: string | undefined = undefined;
 
 if (!privateKey) {
   throw new Error("Missing THIRDWEB_ADMIN_PRIVATE_KEY in .env file.");
@@ -39,7 +40,9 @@ export async function login(payload: VerifyLoginPayloadParams) {
     });
     cookies().set("jwt", jwt);
     if (verifiedPayload?.payload?.address) {
-      LOGGED_IN_WALLET_ADDR = verifiedPayload.payload.address;
+      await setServerSession({
+        loggedInWalletAddress: verifiedPayload.payload.address,
+      });
       await setUserLoginStatusById(verifiedPayload.payload.address, true);
       return verifiedPayload.payload.address;
     }
@@ -57,10 +60,14 @@ export async function isLoggedIn() {
 
 export async function logout() {
   cookies().delete("jwt");
-  if (LOGGED_IN_WALLET_ADDR) {
-    await setUserLoginStatusById(LOGGED_IN_WALLET_ADDR, false);
-  }
-  LOGGED_IN_WALLET_ADDR = undefined;
+  getServerSession().then((session) => {
+    if (session?.loggedInWalletAddress) {
+      setUserLoginStatusById(session?.loggedInWalletAddress, false);
+    }
+    resetServerSession();
+  });
+
+  // LOGGED_IN_WALLET_ADDR = undefined;
 }
 
 export async function getUserProfile(address: string) {
@@ -84,15 +91,16 @@ export async function deleteUser(walletAddr: string) {
 
 export async function isLoggedInUserAdmin(): Promise<boolean> {
   const admins = process.env.RESPECT_GAME_ADMINS?.split(",") || [];
-
-  if (!LOGGED_IN_WALLET_ADDR) {
+  const serverSession = await getServerSession();
+  const loggedInWalletAddress = serverSession?.loggedInWalletAddress;
+  if (!loggedInWalletAddress?.length) {
     return false;
   }
-  const userProfile: any = await getUserProfile(LOGGED_IN_WALLET_ADDR);
+  const userProfile: any = await getUserProfile(loggedInWalletAddress);
   if (!userProfile) {
     return false;
   }
-  if (!admins?.some((addr) => addr === LOGGED_IN_WALLET_ADDR)) {
+  if (!admins?.some((addr) => addr === loggedInWalletAddress)) {
     return false;
   }
   return true;
