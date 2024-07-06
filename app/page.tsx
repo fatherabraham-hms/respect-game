@@ -1,6 +1,4 @@
-'use client';
-import { UsersTable } from './users-table';
-import { Search } from './search';
+import { UsersTable } from '@/app/users-table';
 
 export default async function IndexPage({
   searchParams
@@ -18,7 +16,7 @@ export default async function IndexPage({
         <h1 className="font-semibold text-lg md:text-2xl">Users</h1>
       </div>
       <div className="w-full mb-4">
-        <Search value={searchParams.q} />
+        {/*<Search value={searchParams.q} />*/}
       </div>
       <UsersTable />
     </main>
