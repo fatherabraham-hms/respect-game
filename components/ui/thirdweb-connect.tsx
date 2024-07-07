@@ -23,7 +23,7 @@ export default function Connect() {
     auth={{
       isLoggedIn: async (address) => {
         console.log("checking if logged in...", { address });
-        return await isLoggedIn();
+        return await isLoggedIn(address);
       },
       doLogin: async (params) => {
         login(params).then((verifiedAddr) => {

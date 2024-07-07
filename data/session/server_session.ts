@@ -1,36 +1,23 @@
-"use server";
-
 export interface ServerSession {
   loggedInWalletAddress: string;
 }
 
-class ServerSessionSingleton {
-  private static instance: ServerSessionSingleton;
-  private loggedInWalletAddress: string;
+var SERVER_SESSION = (function() {
+  const session = {
+    loggedInWalletAddress: ''
+  };
 
-  private constructor() {
-    this.loggedInWalletAddress = '';
-  }
-
-  public static getInstance(): ServerSessionSingleton {
-    if (!ServerSessionSingleton.instance) {
-      ServerSessionSingleton.instance = new ServerSessionSingleton();
+  return {
+    getLoggedInWalletAddress: function() {
+      return session.loggedInWalletAddress;
+    },
+    setLoggedInWalletAddress: function(loggedInWalletAddress: string) {
+      session.loggedInWalletAddress = loggedInWalletAddress;
+    },
+    resetLoggedInWalletAddress: function() {
+      session.loggedInWalletAddress = '';
     }
+  };
+})();
 
-    return ServerSessionSingleton.instance;
-  }
-
-  public getLoggedInWalletAddress(): string {
-    return this.loggedInWalletAddress;
-  }
-
-  public setLoggedInWalletAddress(loggedInWalletAddress: string) {
-    this.loggedInWalletAddress = loggedInWalletAddress;
-  }
-
-  public resetLoggedInWalletAddress() {
-    this.loggedInWalletAddress = '';
-  }
-}
-
-export default ServerSessionSingleton;
+export default SERVER_SESSION;
