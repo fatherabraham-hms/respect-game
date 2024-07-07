@@ -10,7 +10,6 @@ import { useState } from 'react';
 import { NavSidebar } from '@/components/app-shell/nav-sidebar';
 import { Login } from '@/app/login/Login';
 import { AuthContext } from '../data/context/Contexts';
-import SERVER_SESSION from '../data/session/server_session';
 // export const metadata = {
 //   title: 'Next.js App Router + NextAuth + Tailwind CSS',
 //   description:
@@ -26,8 +25,6 @@ export default function RootLayout({
     isLoggedIn: false,
     isAdmin: false,
   });
-
-  SERVER_SESSION.setLoggedInWalletAddress('');
 
   return (
     <AuthContext.Provider value={{ ...authContext, setAuthContext }}>

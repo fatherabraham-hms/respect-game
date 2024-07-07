@@ -1,3 +1,5 @@
+"use server";
+
 export interface ServerSession {
   loggedInWalletAddress: string;
 }
@@ -20,4 +22,14 @@ var SERVER_SESSION = (function() {
   };
 })();
 
-export default SERVER_SESSION;
+export async function getLoggedInWalletAddress() {
+  return SERVER_SESSION.getLoggedInWalletAddress();
+}
+
+export async function setLoggedInWalletAddress(loggedInWalletAddress: string) {
+  return SERVER_SESSION.setLoggedInWalletAddress(loggedInWalletAddress);
+}
+
+export async function resetLoggedInWalletAddress() {
+  return SERVER_SESSION.resetLoggedInWalletAddress();
+}

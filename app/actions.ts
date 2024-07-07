@@ -10,7 +10,11 @@ import { VerifyLoginPayloadParams, createAuth } from "thirdweb/auth";
 import { privateKeyAccount } from "thirdweb/wallets";
 import { client } from "@/lib/client";
 import { cookies } from "next/headers";
-import SERVER_SESSION from '../data/session/server_session';
+import {
+  getLoggedInWalletAddress,
+  resetLoggedInWalletAddress,
+  setLoggedInWalletAddress
+} from '../data/session/server_session';
 
 /*********** THIRDWEB AUTHENTICATION ***********/
 
@@ -39,7 +43,7 @@ export async function login(payload: VerifyLoginPayloadParams) {
     });
     cookies().set("jwt", jwt);
     if (verifiedPayload?.payload?.address) {
-      SERVER_SESSION.setLoggedInWalletAddress(verifiedPayload.payload.address);
+      await setLoggedInWalletAddress(verifiedPayload.payload.address);
       await setUserLoginStatusById(verifiedPayload.payload.address, true);
       return verifiedPayload.payload.address;
     }
@@ -57,11 +61,11 @@ export async function isLoggedIn(address: string) {
 
 export async function logout() {
   cookies().delete("jwt");
-  const loggedInWalletAddress = SERVER_SESSION.getLoggedInWalletAddress();
+  const loggedInWalletAddress = await getLoggedInWalletAddress();
     if (loggedInWalletAddress) {
       await setUserLoginStatusById(loggedInWalletAddress, false);
     }
-  SERVER_SESSION.resetLoggedInWalletAddress();
+  await resetLoggedInWalletAddress();
 }
 
 export async function getUserProfile(address: string) {
@@ -85,7 +89,7 @@ export async function deleteUser(walletAddr: string) {
 
 export async function isLoggedInUserAdmin(): Promise<boolean> {
   const admins = process.env.RESPECT_GAME_ADMINS?.split(",") || [];
-  const loggedInWalletAddress = SERVER_SESSION.getLoggedInWalletAddress();
+  const loggedInWalletAddress = await getLoggedInWalletAddress();
   if (!loggedInWalletAddress) {
     return false;
   }
