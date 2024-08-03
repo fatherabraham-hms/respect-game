@@ -2,30 +2,55 @@
 
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { pgTable, serial, varchar, boolean, date, integer } from 'drizzle-orm/pg-core';
 import { eq } from 'drizzle-orm';
+import { VercelPgDatabase } from 'drizzle-orm/vercel-postgres';
+import {
+  drizzle as LocalDrizzle,
+  type PostgresJsDatabase,
+} from "drizzle-orm/postgres-js";
+import postgres from 'postgres';
+import { UsersPgTable } from '@/lib/postgres_drizzle/users.orm';
+import { ConsensusSessionsPgTable } from '@/lib/postgres_drizzle/consensus_sessions.orm';
+import { User } from '@/lib/dtos/user.dto';
 
-const db = drizzle(
-  neon(process.env.POSTGRES_URL!, {
-    fetchOptions: {
-      cache: 'no-store'
-    }
-  })
-);
+// ************** TABLES ****************** //
+const users = UsersPgTable;
+const consensusSessions = ConsensusSessionsPgTable;
 
-const users = pgTable('users', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 50 }),
-  username: varchar('username', { length: 50 }),
-  email: varchar('email', { length: 50 }),
-  walletAddress: varchar('walletaddress', { length: 50 }),
-  loggedIn: boolean('loggedin'),
-  lastLogin: date('lastlogin'),
-  permissions: integer('permissions')
-});
 
+// -- create a table to store userid with groupid and sessionid
+// CREATE TABLE consensus_groups (groupid SERIAL PRIMARY KEY, sessionid INT REFERENCES consensus_sessions (sessionid), groupstatus SMALLINT, modifiedbyid integer REFERENCES users (id), created TIMESTAMP, updated TIMESTAMP);
+//
+// -- create a table to store group members
+// CREATE TABLE consensus_group_members (groupid INT REFERENCES consensus_groups (groupid), userid INT REFERENCES users (id), created TIMESTAMP, updated TIMESTAMP);
+//
+// --- create table to handle consensus session votes
+// CREATE TABLE consensus_votes (votedfor INT REFERENCES users (id), sessionid INT REFERENCES consensus_sessions (sessionid), groupid INT REFERENCES consensus_groups (groupid), rankingValue SMALLINT, modifiedbyid INT REFERENCES users (id), created TIMESTAMP, updated TIMESTAMP);
+//
+// -- create a table to store the final consensus with each ranking
+// CREATE TABLE consensus_status (sessionid INT REFERENCES consensus_sessions (sessionid), rankingValue INT, votedfor INT REFERENCES users (id), consensusStatus SMALLINT, modifiedbyid integer REFERENCES users (id), created TIMESTAMP, updated TIMESTAMP);
+
+
+
+// https://www.thisdot.co/blog/configure-your-project-with-drizzle-for-local-and-deployed-databases
+let db: | VercelPgDatabase<Record<string, never>>
+| PostgresJsDatabase<Record<string, never>>;
+
+if (process.env.NODE_ENV === 'production') {
+  db = drizzle(
+    neon(process.env.POSTGRES_URL!, {
+      fetchOptions: {
+        cache: 'no-store'
+      }
+    })
+  );
+} else {
+  const migrationClient = postgres(process.env.POSTGRES_URL as string);
+  db = LocalDrizzle(migrationClient);
+}
+
+// ************** UsersPgTable ****************** //
 export type SelectUser = typeof users.$inferSelect;
-
 export async function getUsers(
   search: string,
   offset: number
@@ -42,13 +67,14 @@ export async function getUsers(
           name: users.name,
           username: users.username,
           email: users.email,
-          walletAddress: users.walletAddress,
-          loggedIn: users.loggedIn,
-          lastLogin: users.lastLogin,
+          telegram: users.telegram,
+          walletaddress: users.walletaddress,
+          loggedin: users.loggedin,
+          lastlogin: users.lastlogin,
           permissions: users.permissions
         })
         .from(users)
-        .where(eq(users.loggedIn, true))
+        .where(eq(users.loggedin, true))
         .limit(1000),
       newOffset: null
     };
@@ -68,34 +94,36 @@ export async function deleteUserById(id: number) {
 }
 
 export async function setUserLoginStatusById(walletAddress: string, loggedIn: boolean) {
-  await db.update(users).set({ loggedIn }).where(eq(users.walletAddress, walletAddress));
+  await db.update(users).set({ loggedin: loggedIn }).where(eq(users.walletaddress, walletAddress));
 }
 
 export async function getUserProfileByWalletAddress(walletAddress: string) {
-  return db.select({
+  return db.selectDistinct({
     name: users.name,
     username: users.username,
     email: users.email,
-    walletAddress: users.walletAddress,
-    loggedIn: users.loggedIn,
-    lastLogin: users.lastLogin,
+    walletaddress: users.walletaddress,
+    loggedin: users.loggedin,
+    lastlogin: users.lastlogin,
     permissions: users.permissions
-  }).from(users).where(eq(users.walletAddress, walletAddress));
+  }).from(users).where(eq(users.walletaddress, walletAddress));
 }
 
-// CREATE TABLE consensus_sessions (sessionid SERIAL PRIMARY KEY, sessiontype VARCHAR(255), rankingLimit INT, title VARCHAR(255), description TEXT, status VARCHAR(255), adminid INT, created DATETIME, updated DATETIME);
-const consensusSessions = pgTable('consensus_sessions', {
-  sessionId: serial('sessionid').primaryKey(),
-  sessionType: varchar('sessiontype', { length: 255 }),
-  rankingLimit: varchar('rankinglimit', { length: 255 }),
-  title: varchar('title', { length: 255 }),
-  description: varchar('description', { length: 255 }),
-  status: varchar('status', { length: 255 }),
-  adminId: varchar('adminid', { length: 255 }),
-  created: date('created'),
-  updated: date('updated')
-});
+export async function createUserProfile(user: Partial<User>) {
+  if (!user || user.walletaddress === undefined || user.walletaddress?.length < 5 ){
+    return null;
+  }
+  return db.insert(users).values({...user});
+}
 
+export async function updateUserProfile(user: Partial<User>) {
+  if (!user || user.walletaddress === undefined || user.walletaddress?.length < 5 ){
+    return null;
+  }
+  return db.update(users).set({...user}).where(eq(users.walletaddress, user.walletaddress));
+}
+
+// ************** ConsensusSessionsPgTable ****************** //
 export type ConsensusSessionDto = typeof consensusSessions.$inferSelect;
 
 export async function getConsensusSessions() {
@@ -104,12 +132,13 @@ export async function getConsensusSessions() {
 
 export async function createConsensusSession(session: ConsensusSessionDto) {
   return db.insert(consensusSessions).values({
-    sessionId: undefined,
-    sessionType: 'ranking-consensus',
-    rankingLimit: session.rankingLimit,
+    sessiontype: session.sessiontype,
+    rankinglimit: session.rankinglimit,
     title: session.title,
     description: session.description,
-    status: session.status,
-    adminId: session.adminId,
+    sessionstatus: session.sessionstatus,
+    modifiedbyid: session.modifiedbyid,
   });
 }
+
+// ************** UsersPgTable ****************** //

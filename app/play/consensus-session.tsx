@@ -9,7 +9,6 @@ import { AuthContext } from '../../data/context/Contexts';
 
 export function ConsensusSession() {
   const [currentSession, setCurrentSession] = useState({
-    meetingNum: 1,
     groupNum: 1,
     attendees: [],
     rankingScheme: 'numeric-descending',
@@ -32,9 +31,10 @@ export function ConsensusSession() {
   const authContext = useContext(AuthContext);
 
   function handleStartSession() {
-    createConsensusSessionAction(currentSession).then(() => {
+    const mySession = currentSession as any;
+    createConsensusSessionAction(mySession).then(() => {
       setCurrentSession({
-        ...currentSession,
+        ...mySession,
         attendees: users
       });
     });

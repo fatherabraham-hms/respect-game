@@ -56,7 +56,7 @@ export function UsersTable() {
           </TableHeader>
           <TableBody>
             {users.map((user: User) => (
-              <UserRow key={user.walletAddress} user={user} groupAddresses={groupAddresses} setGroupAddresses={setGroupAddresses}/>
+              <UserRow key={user.walletaddress} user={user} groupAddresses={groupAddresses} setGroupAddresses={setGroupAddresses}/>
             ))}
           </TableBody>
         </Table>
@@ -87,13 +87,13 @@ function UserRow({ user, groupAddresses, setGroupAddresses }: { user: User, grou
   return (
     <TableRow>
       <TableCell>
-        <input type="checkbox" value={user.walletAddress} onClick={handleCheckbox}/>
+        <input type="checkbox" value={user.walletaddress} onClick={handleCheckbox}/>
       </TableCell>
       <TableCell className="font-medium">{user.name}</TableCell>
       <TableCell className="hidden md:table-cell">{user.email}</TableCell>
       <TableCell>{user.username}</TableCell>
       <TableCell>
-        <span>{user.loggedIn.toString() }</span>
+        <span>{user.loggedin.toString() }</span>
       </TableCell>
     </TableRow>
   );

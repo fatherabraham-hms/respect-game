@@ -30,7 +30,7 @@ export default function Connect() {
           getUserProfile(verifiedAddr || '').then((profile) => {
             console.log('logged in!', verifiedAddr);
             console.log('user profile', profile);
-            if (!profile) {
+            if (!Array.isArray(profile) || profile.length === 0) {
               router.push('/signup');
             } else {
               isLoggedInUserAdmin().then((isAdmin) => {
@@ -38,6 +38,7 @@ export default function Connect() {
                   isLoggedIn: true,
                   isAdmin
                 });
+                router.push('/play');
               });
             }
           });

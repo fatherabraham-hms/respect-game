@@ -43,7 +43,7 @@ dependencies:
     version: 0.21.1
   drizzle-orm:
     specifier: ^0.30.10
-    version: 0.30.10(@neondatabase/serverless@0.9.3)(@types/react@18.3.2)(react@18.3.1)
+    version: 0.30.10(@neondatabase/serverless@0.9.3)(@types/react@18.3.2)(postgres@3.4.4)(react@18.3.1)
   lucide-react:
     specifier: ^0.378.0
     version: 0.378.0(react@18.3.1)
@@ -59,6 +59,9 @@ dependencies:
   postcss:
     specifier: ^8.4.38
     version: 8.4.38
+  postgres:
+    specifier: ^3.4.4
+    version: 3.4.4
   prettier:
     specifier: ^3.2.5
     version: 3.2.5
@@ -4907,7 +4910,7 @@ packages:
       - supports-color
     dev: false
 
-  /drizzle-orm@0.30.10(@neondatabase/serverless@0.9.3)(@types/react@18.3.2)(react@18.3.1):
+  /drizzle-orm@0.30.10(@neondatabase/serverless@0.9.3)(@types/react@18.3.2)(postgres@3.4.4)(react@18.3.1):
     resolution: {integrity: sha512-IRy/QmMWw9lAQHpwbUh1b8fcn27S/a9zMIzqea1WNOxK9/4EB8gIo+FZWLiPXzl2n9ixGSv8BhsLZiOppWEwBw==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
@@ -4989,6 +4992,7 @@ packages:
     dependencies:
       '@neondatabase/serverless': 0.9.3
       '@types/react': 18.3.2
+      postgres: 3.4.4
       react: 18.3.1
     dev: false
 
@@ -7204,6 +7208,11 @@ packages:
 
   /postgres-range@1.1.4:
     resolution: {integrity: sha512-i/hbxIE9803Alj/6ytL7UHQxRvZkI9O4Sy+J3HGc4F4oo/2eQAjTSNJ0bfxyse3bH0nuVesCk+3IRLaMtG3H6w==}
+    dev: false
+
+  /postgres@3.4.4:
+    resolution: {integrity: sha512-IbyN+9KslkqcXa8AO9fxpk97PA4pzewvpi2B3Dwy9u4zpV32QicaEdgmF3eSQUzdRk7ttDHQejNgAEr4XoeH4A==}
+    engines: {node: '>=12'}
     dev: false
 
   /preact-render-to-string@5.2.3(preact@10.11.3):

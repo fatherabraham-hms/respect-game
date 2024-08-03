@@ -36,8 +36,8 @@ CREATE TABLE users (
   name VARCHAR(255),
   username VARCHAR(255),
   walletaddress VARCHAR(255),
-  loggedIn BOOLEAN DEFAULT FALSE,
-  lastLogin TIMESTAMP,
+  loggedin BOOLEAN DEFAULT FALSE,
+  lastlogin TIMESTAMP,
   permissions INT2 DEFAULT 0,
 );
 ```
@@ -45,7 +45,7 @@ CREATE TABLE users (
 Insert a row for testing:
 
 ```
-INSERT INTO users (email, name, username, walletaddress, loggedIn, lastLogin) VALUES ('user1@fake.com', 'Mad Hatter', 'hatter123', '0x12345', true, NOW());
+INSERT INTO users (email, name, username, walletaddress, loggedin, lastlogin) VALUES ('user1@fake.com', 'Mad Hatter', 'hatter123', '0x12345', true, NOW());
 ```
 
 Copy the `.env.example` file to `.env` and update the values.

@@ -24,7 +24,7 @@ export function RankingSelector({ session, setSession }: { session: ConsensusSes
     if (!walletAddress || !attestation) {
       return;
     }
-    const user = session.attendees.find((user) => user.walletAddress === walletAddress);
+    const user = session.attendees.find((user) => user.walletaddress === walletAddress);
     if (user && session.rankingScheme === 'numeric-descending') {
       handleNumericVote(user, attestation);
     }
@@ -39,13 +39,13 @@ export function RankingSelector({ session, setSession }: { session: ConsensusSes
     const rankingsCopy = { ...votingRound };
 
     // if they are not yet ranked, add them with 0 votes
-    if (typeof existingRanking?.walletAddress === 'undefined') {
+    if (typeof existingRanking?.walletaddress === 'undefined') {
       rankingsCopy[currentRankNumber] = {
         ...user,
         votes: 0
       };
     // if they are already ranked, update their votes
-    } else if (existingRanking?.walletAddress === user.walletAddress) {
+    } else if (existingRanking?.walletaddress === user.walletaddress) {
       rankingsCopy[currentRankNumber] = { ...user, votes: existingRanking.votes };
     } else {
       rankingsCopy[currentRankNumber] = { ...user, votes: existingRanking.votes };
@@ -80,7 +80,7 @@ export function RankingSelector({ session, setSession }: { session: ConsensusSes
 
   const calculateRankingPercentage = (user: User) => {
     const totalVotes = Object.values(votingRound).reduce((acc, ranking) => acc + ranking.votes, 0);
-    const userRanking = votingRound[currentRankNumber]?.walletAddress === user.walletAddress ? votingRound[currentRankNumber] : null;
+    const userRanking = votingRound[currentRankNumber]?.walletaddress === user.walletaddress ? votingRound[currentRankNumber] : null;
     if (!userRanking) {
       return 0;
     }
@@ -89,7 +89,7 @@ export function RankingSelector({ session, setSession }: { session: ConsensusSes
 
   const calculateRankingFractionOfTwelve = (user: User) => {
     const totalVotes = Object.values(votingRound).reduce((acc, ranking) => acc + ranking.votes, 0);
-    const userRanking = votingRound[currentRankNumber]?.walletAddress === user.walletAddress ? votingRound[currentRankNumber] : null;
+    const userRanking = votingRound[currentRankNumber]?.walletaddress === user.walletaddress ? votingRound[currentRankNumber] : null;
     if (!userRanking) {
       return 0;
     }
@@ -113,14 +113,14 @@ export function RankingSelector({ session, setSession }: { session: ConsensusSes
         {/*<pre>Session: {JSON.stringify(session, null, 2)}</pre>*/}
         {session?.attendees?.map((user: User) => (
           // <pre>{JSON.stringify(user, null, 2)}</pre>
-          <div key={user.walletAddress} className={'flex items-center'}>
+          <div key={user.walletaddress} className={'flex items-center'}>
             <div className={'flex-grow-0 p-4'}>
-              <input type={'radio'} name={'rankings'} value={'upvote'} onChange={() => setRanking(user.walletAddress, 'upvote')} />
+              <input type={'radio'} name={'rankings'} value={'upvote'} onChange={() => setRanking(user.walletaddress, 'upvote')} />
             </div>
             <div className="w-full p-4 border-b dark:border-neutral-700">
               <div>
                 <label className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.name}</label>
-                <div>{user.walletAddress}</div>
+                <div>{user.walletaddress}</div>
               </div>
               <div
                 className={`ms-[calc(${calculateRankingPercentage(user)}%-1.25rem)] ` + "inline-block mb-2 py-0.5 px-1.5 bg-blue-50 border border-blue-200 text-xs font-medium text-blue-600 rounded-lg dark:bg-blue-800/30 dark:border-blue-800 dark:text-blue-500"}>

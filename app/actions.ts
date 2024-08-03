@@ -4,7 +4,7 @@ import {
   setUserLoginStatusById,
   getUserProfileByWalletAddress,
   createConsensusSession,
-  ConsensusSessionDto
+  ConsensusSessionDto, updateUserProfile, createUserProfile
 } from '@/lib/db';
 import { VerifyLoginPayloadParams, createAuth } from "thirdweb/auth";
 import { privateKeyAccount } from "thirdweb/wallets";
@@ -15,6 +15,7 @@ import {
   resetLoggedInWalletAddress,
   setLoggedInWalletAddress
 } from '../data/session/server_session';
+import { User } from '@/lib/dtos/user.dto';
 
 /*********** THIRDWEB AUTHENTICATION ***********/
 
@@ -43,10 +44,24 @@ export async function login(payload: VerifyLoginPayloadParams) {
     });
     cookies().set("jwt", jwt);
     if (verifiedPayload?.payload?.address) {
+      await createUserAccountIfNotExists(verifiedPayload.payload.address);
       await setLoggedInWalletAddress(verifiedPayload.payload.address);
       await setUserLoginStatusById(verifiedPayload.payload.address, true);
       return verifiedPayload.payload.address;
     }
+  }
+}
+
+async function createUserAccountIfNotExists(address: string) {
+  const user = await getUserProfileByWalletAddress(address);
+  if (!user || user.length === 0) {
+    await createUserProfile({
+      walletaddress: address,
+      name: undefined,
+      username: undefined,
+      email: "",
+      telegram: "",
+    });
   }
 }
 
@@ -81,6 +96,16 @@ export async function getUserProfile(address: string) {
   return await getUserProfileByWalletAddress(address);
 }
 
+export async function updateUserProfileAction(user: Partial<User>) {
+  if (!user) {
+    return null;
+  }
+  // TODO: add jwt verification here
+  const loggedInUserAddress = getLoggedInWalletAddress();
+  user.walletaddress = await loggedInUserAddress;
+  return await updateUserProfile(user);
+}
+
 export async function deleteUser(walletAddr: string) {
   // Uncomment this to enable deletion
   // await deleteUserById(userId);
@@ -94,7 +119,7 @@ export async function isLoggedInUserAdmin(): Promise<boolean> {
     return false;
   }
   const userProfile: any = await getUserProfile(loggedInWalletAddress);
-  if (!userProfile) {
+  if (!userProfile || userProfile?.length === 0) {
     return false;
   }
   if (!admins?.some((addr) => addr === loggedInWalletAddress)) {
@@ -114,3 +139,13 @@ export async function createConsensusSessionAction(session: ConsensusSessionDto)
   }
   return createConsensusSession(session);
 }
+
+/*********** CONSENSUS GROUPS ***********/
+export async function createConsensusGroup() {}
+
+
+/*********** CONSENSUS GROUP MEMBERS ***********/
+
+/*********** CONSENSUS VOTES ***********/
+
+/*********** CONSENSUS STATUS ***********/
