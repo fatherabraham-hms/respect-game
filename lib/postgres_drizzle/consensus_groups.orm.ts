@@ -5,8 +5,6 @@ import { ConsensusSessionsPgTable } from '@/lib/postgres_drizzle/consensus_sessi
 import { smallint } from 'drizzle-orm/pg-core/columns/smallint';
 import { sql } from 'drizzle-orm';
 
-// CREATE TABLE consensus_groups (groupid SERIAL PRIMARY KEY, sessionid INT REFERENCES consensus_sessions (sessionid), groupstatus SMALLINT, modifiedbyid integer REFERENCES users (id), created TIMESTAMP, updated TIMESTAMP);
-
 export const ConsensusGroupsPgTable = pgTable('consensus_groups', {
   groupid: serial('groupid').primaryKey(),
   sessionid: integer('sessionid').references(() => ConsensusSessionsPgTable.sessionId),

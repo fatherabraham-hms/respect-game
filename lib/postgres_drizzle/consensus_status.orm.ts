@@ -4,8 +4,6 @@ import { ConsensusSessionsPgTable } from '@/lib/postgres_drizzle/consensus_sessi
 import { smallint } from 'drizzle-orm/pg-core/columns/smallint';
 import { UsersPgTable } from '@/lib/postgres_drizzle/users.orm';
 
-// CREATE TABLE consensus_status (sessionid INT REFERENCES consensus_sessions (sessionid), rankingvalue SMALLINT, votedfor INT REFERENCES users (id), consensusstatus SMALLINT, modifiedbyid integer REFERENCES users (id), created TIMESTAMP WITH TIME ZONE, updated TIMESTAMP WITH TIME ZONE);
-
 export const ConsensusStatusPgTable = pgTable('sessionid', {
   sessionid: integer('sessionid').references(() => ConsensusSessionsPgTable.sessionId),
   rankingvalue: smallint('rankingvalue'),

@@ -3,9 +3,6 @@ import { smallint } from 'drizzle-orm/pg-core/columns/smallint';
 import { UsersPgTable } from '@/lib/postgres_drizzle/users.orm';
 import { sql } from 'drizzle-orm';
 
-// CREATE TABLE consensus_sessions (sessionid SERIAL PRIMARY KEY, sessiontype SMALLINT, rankingLimit INT, title VARCHAR(255),
-// description TEXT, sessionStatus SMALLINT, modifiedbyid integer REFERENCES users (id), created TIMESTAMP, updated TIMESTAMP);
-
 export const ConsensusSessionsPgTable = pgTable('consensus_sessions', {
   sessionId: serial('sessionid').primaryKey(),
   sessiontype: smallint('sessiontype'),
