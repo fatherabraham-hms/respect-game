@@ -1,7 +1,7 @@
 'use client';
 import { ConsensusSession } from '@/app/play/consensus-session';
 
-export default async function IndexPage() {
+export default function IndexPage() {
 
   return (
     <main className="flex flex-1 flex-col p-4 md:p-6">

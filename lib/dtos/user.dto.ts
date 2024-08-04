@@ -1,9 +1,10 @@
 export type User = {
-  id: number;
   name: string;
   username: string;
   email: string;
-  walletAddress: string;
-  loggedIn: boolean;
-  lastLogin: Date;
+  telegram: string;
+  walletaddress: string;
+  loggedin: boolean;
+  lastlogin: Date;
+  permissions: number;
 }
