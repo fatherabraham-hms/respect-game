@@ -4,45 +4,64 @@ import { base } from 'thirdweb/chains';
 import { client } from '@/lib/client';
 import {
   generatePayload, getUserProfile,
-  isLoggedIn, isLoggedInUserAdmin,
+  isLoggedInAction, isLoggedInUserAdmin,
   login,
   logout
 } from '@/app/actions';
 import { useRouter } from 'next/navigation';
 import { AuthContext } from '../../data/context/Contexts';
 import { useContext } from 'react';
+import { User } from '@/lib/dtos/user.dto';
 
 // TODO: possible future direction https://docs.passport.xyz/, https://help.guild.xyz/en/articles/6947626-guild-sdk
 
 export default function Connect() {
   const router = useRouter();
   const authContext = useContext(AuthContext);
+
+  async function isLoggedInSetContext(profile: Partial<User> | null, verifiedAddr: string): Promise<boolean> {
+    const admin = await isLoggedInUserAdmin();
+    const isLoggedIn = await isLoggedInAction(verifiedAddr);
+    if (isLoggedIn) {
+      authContext.setAuthContext({
+        isLoggedIn: isLoggedIn,
+        admin,
+        hasProfile: profile?.walletaddress === verifiedAddr && profile?.username !== null
+      });
+      return true;
+    }
+    return false;
+  }
+
   return <ConnectButton
     client={client}
     onDisconnect={() => {}}
     auth={{
       isLoggedIn: async (address) => {
-        console.log("checking if logged in...", { address });
-        return await isLoggedIn(address);
+        const profile = await getUserProfile(address);
+        return await isLoggedInSetContext(profile, address);
       },
       doLogin: async (params) => {
-        login(params).then((verifiedAddr) => {
-          getUserProfile(verifiedAddr || '').then((profile) => {
-            console.log('logged in!', verifiedAddr);
-            console.log('user profile', profile);
-            if (!Array.isArray(profile) || profile.length === 0) {
-              router.push('/signup');
-            } else {
-              isLoggedInUserAdmin().then((isAdmin) => {
-                authContext.setAuthContext({
-                  isLoggedIn: true,
-                  isAdmin
-                });
-                router.push('/play');
-              });
-            }
-          });
-        });
+        const verifiedAddress = await login(params);
+        if (verifiedAddress) {
+          const profile = await getUserProfile(verifiedAddress);
+          const loggedIn = await isLoggedInSetContext(profile, verifiedAddress);
+          const updatedAuthContext = useContext(AuthContext);
+          if (loggedIn && profile === null) {
+            router.push('/signup');
+          } else if (loggedIn
+            && profile
+            && 'walletAddress' in profile
+            && updatedAuthContext.isAdmin) {
+            router.push('/users');
+          } else if (loggedIn
+            && profile
+            && 'walletAddress' in profile
+            && !updatedAuthContext.isAdmin) {
+            router.push('/play');
+          }
+        }
+
       },
       getLoginPayload: async ({ address }) =>
         generatePayload({ address, chainId: base.id }),

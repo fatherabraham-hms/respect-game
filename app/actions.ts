@@ -4,7 +4,7 @@ import {
   setUserLoginStatusById,
   getUserProfileByWalletAddress,
   createConsensusSession,
-  ConsensusSessionDto, updateUserProfile, createUserProfile
+  ConsensusSessionDto, updateUserProfile, createUserProfile, getAllUsers, SelectUser
 } from '@/lib/db';
 import { VerifyLoginPayloadParams, createAuth } from "thirdweb/auth";
 import { privateKeyAccount } from "thirdweb/wallets";
@@ -18,7 +18,8 @@ import {
 import { User } from '@/lib/dtos/user.dto';
 
 /*********** THIRDWEB AUTHENTICATION ***********/
-
+// Checking JWT should be sufficient for most cases to verify that Client Server tampering is not happening
+// https://medium.com/swlh/hacking-json-web-tokens-jwts-9122efe91e4a
 const privateKey = process.env.THIRDWEB_ADMIN_PRIVATE_KEY || "";
 
 if (!privateKey) {
@@ -30,6 +31,17 @@ const thirdwebAuth = createAuth({
   adminAccount: privateKeyAccount({ client, privateKey }),
   client: client,
 });
+
+async function checkJWT() {
+  const jwt = cookies().get("jwt");
+  if (!jwt?.value) {
+    return null;
+  }
+  const authResult = await thirdwebAuth.verifyJWT({ jwt: jwt.value });
+  if (!authResult.valid) {
+    return null;
+  }
+}
 
 export async function generatePayload(param: { address: string, chainId: number}) {
   param.chainId = 1;
@@ -65,16 +77,17 @@ async function createUserAccountIfNotExists(address: string) {
   }
 }
 
-export async function isLoggedIn(address: string) {
-  const jwt = cookies().get("jwt");
-  if (!jwt?.value) {
-    return false;
+export async function isLoggedInAction(address: string): Promise<boolean> {
+  await checkJWT();
+  const dbResult = await getUserProfileByWalletAddress(address);
+  if (dbResult && dbResult[0].loggedin) {
+    await setLoggedInWalletAddress(address);
   }
-  const authResult = await thirdwebAuth.verifyJWT({ jwt: jwt.value });
-  return authResult.valid;
+  return dbResult && dbResult[0]?.loggedin ? dbResult.length > 0 && dbResult[0].loggedin : false;
 }
 
 export async function logout() {
+  await checkJWT();
   cookies().delete("jwt");
   const loggedInWalletAddress = await getLoggedInWalletAddress();
     if (loggedInWalletAddress) {
@@ -83,27 +96,38 @@ export async function logout() {
   await resetLoggedInWalletAddress();
 }
 
-export async function getUserProfile(address: string) {
-  const jwt = cookies().get("jwt");
-  if (!jwt?.value) {
-    return null;
-  }
+/*********** USERS ***********/
 
-  const authResult = await thirdwebAuth.verifyJWT({ jwt: jwt.value });
-  if (!authResult.valid) {
-    return null;
+export async function getUsers(query: string = '', offset: number = 0) {
+  await checkJWT();
+  const result = await getAllUsers(query, offset);
+  if (result) {
+    result?.users.forEach((user: Partial<SelectUser>) => {
+      user.id = undefined;
+    });
   }
-  return await getUserProfileByWalletAddress(address);
+  return new Promise((resolve) => {
+    resolve(result.users || []);
+  });
 }
 
-export async function updateUserProfileAction(user: Partial<User>) {
-  if (!user) {
-    return null;
+export async function getUserProfile(address: string): Promise<Partial<User> | null> {
+  await checkJWT();
+  const profile = await getUserProfileByWalletAddress(address);
+  let profileData: Partial<User> | null = null;
+  if (Array.isArray(profile) && profile.length > 0) {
+    // @ts-ignore
+    profileData = profile[0];
   }
-  // TODO: add jwt verification here
-  const loggedInUserAddress = getLoggedInWalletAddress();
-  user.walletaddress = await loggedInUserAddress;
-  return await updateUserProfile(user);
+  return new Promise((resolve) => {
+    resolve(profileData);
+  });
+}
+
+export async function updateUserProfileAction(user: Partial<User>): Promise<Partial<User> | { message: string }> {
+  await checkJWT();
+  const result = await updateUserProfile(user);
+  return result as Partial<User> | { message: string };
 }
 
 export async function deleteUser(walletAddr: string) {
@@ -113,23 +137,19 @@ export async function deleteUser(walletAddr: string) {
 }
 
 export async function isLoggedInUserAdmin(): Promise<boolean> {
+  await checkJWT();
   const admins = process.env.RESPECT_GAME_ADMINS?.split(",") || [];
   const loggedInWalletAddress = await getLoggedInWalletAddress();
   if (!loggedInWalletAddress) {
     return false;
   }
-  const userProfile: any = await getUserProfile(loggedInWalletAddress);
-  if (!userProfile || userProfile?.length === 0) {
-    return false;
-  }
-  if (!admins?.some((addr) => addr === loggedInWalletAddress)) {
-    return false;
-  }
-  return true;
+  return admins?.some((addr) => addr === loggedInWalletAddress);
+
 }
 
 /*********** CONSENSUS SESSIONS ***********/
 export async function createConsensusSessionAction(session: ConsensusSessionDto) {
+  await checkJWT();
   if (Object.keys(session)?.length === 0) {
     throw new Error("Session is empty");
   }
