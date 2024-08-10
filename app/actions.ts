@@ -80,7 +80,7 @@ async function createUserAccountIfNotExists(address: string) {
 export async function isLoggedInAction(address: string): Promise<boolean> {
   await checkJWT();
   const dbResult = await getUserProfileByWalletAddress(address);
-  if (dbResult && dbResult[0].loggedin) {
+  if (dbResult && dbResult[0]?.loggedin) {
     await setLoggedInWalletAddress(address);
   }
   return dbResult && dbResult[0]?.loggedin ? dbResult.length > 0 && dbResult[0].loggedin : false;
