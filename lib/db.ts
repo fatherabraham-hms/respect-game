@@ -51,7 +51,7 @@ if (process.env.NODE_ENV === 'production') {
 
 // ************** UsersPgTable ****************** //
 export type SelectUser = typeof users.$inferSelect;
-export async function getUsers(
+export async function getAllUsers(
   search: string,
   offset: number
 ): Promise<{
@@ -94,10 +94,22 @@ export async function deleteUserById(id: number) {
 }
 
 export async function setUserLoginStatusById(walletAddress: string, loggedIn: boolean) {
-  await db.update(users).set({ loggedin: loggedIn }).where(eq(users.walletaddress, walletAddress));
+  await db.update(users).set({ loggedin: loggedIn, lastlogin: new Date() }).where(eq(users.walletaddress, walletAddress));
 }
 
 export async function getUserProfileByWalletAddress(walletAddress: string) {
+  return db.select({
+    name: users.name,
+    username: users.username,
+    email: users.email,
+    walletaddress: users.walletaddress,
+    loggedin: users.loggedin,
+    lastlogin: users.lastlogin,
+    permissions: users.permissions
+  }).from(users).limit(1).where(eq(users.walletaddress, walletAddress));
+}
+
+export async function getUserProfileByUsername(username: string) {
   return db.selectDistinct({
     name: users.name,
     username: users.username,
@@ -106,7 +118,7 @@ export async function getUserProfileByWalletAddress(walletAddress: string) {
     loggedin: users.loggedin,
     lastlogin: users.lastlogin,
     permissions: users.permissions
-  }).from(users).where(eq(users.walletaddress, walletAddress));
+  }).from(users).where(eq(users.username, username));
 }
 
 export async function createUserProfile(user: Partial<User>) {
@@ -120,7 +132,23 @@ export async function updateUserProfile(user: Partial<User>) {
   if (!user || user.walletaddress === undefined || user.walletaddress?.length < 5 ){
     return null;
   }
-  return db.update(users).set({...user}).where(eq(users.walletaddress, user.walletaddress));
+
+  const usersWithUsername = await getUserProfileByUsername(user.username!);
+  if (usersWithUsername.length > 0 && usersWithUsername[0].walletaddress !== user.walletaddress) {
+    return { message: 'Username already exists, find an unused name' };
+  }
+
+  return db.update(users).set({...user})
+    .where(eq(users.walletaddress, user.walletaddress))
+    .returning({
+      name: users.name,
+      username: users.username,
+      email: users.email,
+      walletaddress: users.walletaddress,
+      loggedin: users.loggedin,
+      lastlogin: users.lastlogin,
+      permissions: users.permissions
+    });
 }
 
 // ************** ConsensusSessionsPgTable ****************** //

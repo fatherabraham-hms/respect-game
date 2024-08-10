@@ -2,32 +2,62 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { updateUserProfileAction } from '@/app/actions';
+import { useForm, SubmitHandler } from 'react-hook-form';
+import { useActiveWallet } from 'thirdweb/react';
+import { AuthContext } from '../../data/context/Contexts';
+import toast from 'react-hot-toast';
+import { User } from '@/lib/dtos/user.dto';
+
+type SignupInputs = {
+  name: string;
+  username: string;
+  email: string;
+  telegram: string;
+};
 
 export function Signup() {
   const router = useRouter();
+  const wallet = useActiveWallet();
+  const authContext = useContext(AuthContext);
   const [profileForm, setProfileForm] = useState({
     name: '',
     username: '',
     email: '',
     telegram: ''
   });
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<SignupInputs>()
 
-  const submitHandler = (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const formProps = Object.fromEntries(formData);
+  const onSubmit: SubmitHandler<SignupInputs> = (formProps) => {
     updateUserProfileAction({
-      ...formProps
-    }).then(() => {
-      router.push('/play');
+      ...formProps,
+      walletaddress: wallet?.getAccount()?.address
+    }).then((response: Partial<User> | { message: string }) => {
+      if (response && !('message' in response)) {
+        authContext.setAuthContext({
+          ...authContext,
+          hasProfile: true
+        });
+        router.push('/play');
+        toast.success('Profile updated!');
+      } else if (response && 'message' in response) {
+        toast.error(response?.message);
+      }
+    })
+    .catch((error) => {
+      router.push('/error');
     });
   };
 
   return (
     <div>
-      <form className="w-full max-w-sm" onSubmit={submitHandler}>
+      <form className="w-full max-w-sm" onSubmit={handleSubmit(onSubmit)}>
         <div className="md:flex md:items-center mb-6">
           <div className="md:w-1/3">
             <label className="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4" htmlFor="inline-full-name">
@@ -35,7 +65,8 @@ export function Signup() {
             </label>
           </div>
           <div className="md:w-2/3">
-            <Input name={'name'} placeholder={'Jane Doe'} />
+            <Input placeholder={'Jane Doe'} {...register("name", { required: true })} />
+            {errors.name && <span>This field is required</span>}
           </div>
         </div>
         <div className="md:flex md:items-center mb-6">
@@ -45,7 +76,8 @@ export function Signup() {
             </label>
           </div>
           <div className="md:w-2/3">
-            <Input name={'username'} placeholder={'wunderkitty'} />
+            <Input placeholder={'wunderkitty'} {...register("username", { required: true })} />
+            {errors.username && <span>This field is required</span>}
           </div>
         </div>
         <div className="md:flex md:items-center mb-6">
@@ -55,7 +87,8 @@ export function Signup() {
             </label>
           </div>
           <div className="md:w-2/3">
-            <Input name={'email'} placeholder={'foo@bar.com'} />
+            <Input placeholder={'foo@bar.com'} {...register("email", { required: true })} />
+            {errors.email && <span>This field is required</span>}
           </div>
         </div>
         <div className="md:flex md:items-center mb-6">
@@ -65,7 +98,8 @@ export function Signup() {
             </label>
           </div>
           <div className="md:w-2/3">
-            <Input name={'telegram'} placeholder={'wunderkitty'} />
+            <Input placeholder={'wunderkitty'} {...register("telegram", { required: true })} />
+            {errors.telegram && <span>This field is required</span>}
           </div>
         </div>
         {/*  <div className="md:flex md:items-center mb-6">*/}

@@ -10,36 +10,40 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import useSWR from 'swr';
-import { Spinner } from '@/components/icons';
 import { User } from '@/lib/dtos/user.dto';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { getUsers } from '@/app/actions';
+import toast from 'react-hot-toast';
 
-
-const fetcher = (...args: any[]) => fetch(`/api/users`).then(res => res.json())
-function useUsers () {
-  const { data, error, isLoading } = useSWR(`/api/users`, fetcher)
-
-  return {
-    users: data?.users || [],
-    newOffset: data?.newOffset,
-    isLoading,
-    isError: error
-  }
-}
 
 export function UsersTable() {
   const router = useRouter();
-  const { users, newOffset, isLoading, isError } = useUsers();
+  const [users, setUsers] = useState<Partial<User[]>>([]);
+  const [query, setQuery] = useState('');
   const offset = 0;
   const [groupAddresses, setGroupAddresses] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const result: Partial<User[]> | unknown = await getUsers(query, offset);
+        const users = result as Partial<User[]>;
+        setUsers(users || []);
+      } catch (error) {
+        toast.error('Could not fetch Users!');
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+  }, [query, offset]);
 
   function onClick() {
     console.log('create group with addresses', groupAddresses);
     console.log('create session', groupAddresses);
   }
 
-  if (isLoading) return <Spinner />
+  // if (isLoading) return <Spinner />
 
   return (
     <>
@@ -55,7 +59,7 @@ export function UsersTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map((user: User) => (
+            {users?.map((user: any) => (
               <UserRow key={user.walletaddress} user={user} groupAddresses={groupAddresses} setGroupAddresses={setGroupAddresses}/>
             ))}
           </TableBody>

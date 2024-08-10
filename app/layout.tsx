@@ -1,6 +1,6 @@
 'use client';
 
-import { ThirdwebProvider, useActiveWalletConnectionStatus } from 'thirdweb/react';
+import { ThirdwebProvider, useActiveWallet, useActiveWalletConnectionStatus, useDisconnect } from 'thirdweb/react';
 import './globals.css';
 import Link from 'next/link';
 import { Analytics } from '@vercel/analytics/react';
@@ -12,6 +12,7 @@ import { Login } from '@/app/login/Login';
 import { AuthContext } from '../data/context/Contexts';
 import { useRouter } from 'next/navigation';
 import { Signup } from '@/components/signup/signup';
+import { Toaster } from 'react-hot-toast';
 // export const metadata = {
 //   title: 'Next.js App Router + NextAuth + Tailwind CSS',
 //   description:
@@ -28,6 +29,14 @@ export default function RootLayout({children}: {
     isAdmin: false,
     hasProfile: false
   });
+  const { disconnect } = useDisconnect();
+  const wallet = useActiveWallet();
+
+  const handleDisconnect = () => {
+    if (wallet) {
+      disconnect(wallet);
+    }
+  }
 
   return (
     <AuthContext.Provider value={{ ...authContext, setAuthContext }}>
@@ -73,12 +82,19 @@ export default function RootLayout({children}: {
                       {children}
                     </div>
                   );
-                } else if (connectionStatus === 'connected' && !authContext?.hasProfile) {
+                } else if (connectionStatus === 'connected' && authContext?.isLoggedIn && !authContext?.hasProfile) {
                   return (
                     <div className="flex-1 flex items-center justify-center">
                       <Signup />
                     </div>
                   );
+                // } else if (connectionStatus === 'connected' && !authContext?.isLoggedIn) {
+                //   handleDisconnect();
+                //   return (
+                //     <div className="flex-1 flex items-center justify-center">
+                //       For Security, you'll need to sign in to continue!
+                //     </div>
+                //   );
                 } else {
                   return (
                     <div className="flex-1 flex items-center justify-center">
@@ -90,6 +106,7 @@ export default function RootLayout({children}: {
             }
           </div>
         </div>
+        <Toaster />
         <Analytics />
         </body>
         </html>
