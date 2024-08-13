@@ -2,7 +2,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq } from 'drizzle-orm';
+import { eq, gt, sql } from 'drizzle-orm';
 import { VercelPgDatabase } from 'drizzle-orm/vercel-postgres';
 import {
   drizzle as LocalDrizzle,
@@ -10,12 +10,18 @@ import {
 } from "drizzle-orm/postgres-js";
 import postgres from 'postgres';
 import { UsersPgTable } from '@/lib/postgres_drizzle/users.orm';
+import { ConsensusGroupsPgTable } from '@/lib/postgres_drizzle/consensus_groups.orm';
 import { ConsensusSessionsPgTable } from '@/lib/postgres_drizzle/consensus_sessions.orm';
 import { User } from '@/lib/dtos/user.dto';
+import { User_be_sessionsOrm } from '@/lib/postgres_drizzle/user_be_sessions.orm';
+import { UserBeSessionsDto } from '@/lib/dtos/user-be-sessions.dto';
+import now = jest.now;
 
 // ************** TABLES ****************** //
 const users = UsersPgTable;
 const consensusSessions = ConsensusSessionsPgTable;
+const consensusGroups = ConsensusGroupsPgTable;
+const userBeSessions = User_be_sessionsOrm;
 
 
 // -- create a table to store userid with groupid and sessionid
@@ -48,6 +54,30 @@ if (process.env.NODE_ENV === 'production') {
   const migrationClient = postgres(process.env.POSTGRES_URL as string);
   db = LocalDrizzle(migrationClient);
 }
+
+// ************** UserBeSessionPgTable ****************** //
+export type SelectUserBeSession = typeof userBeSessions.$inferSelect;
+export async function getBeUserSession(ipAddress: string, walletAddress: string, jwt: string) {
+  return db.select().from(userBeSessions)
+    .where(eq(userBeSessions.ipaddress, ipAddress)
+      && eq(userBeSessions.walletaddress, walletAddress)
+      && sql.raw(`${userBeSessions.expires} > CURRENT_TIMESTAMP`)
+      && eq(userBeSessions.jwt, jwt));
+}
+
+export async function createBeUserSession(session: UserBeSessionsDto) {
+  return db.insert(userBeSessions).values({
+    ...session,
+    expires: new Date(Date.now() + 1000 * 60 * 60),
+    created: new Date(),
+    updated: new Date(),
+  });
+}
+
+export async function deleteBeUserSession(ipAddress: string, walletAddress: string, jwt: string) {
+  return db.delete(userBeSessions).where(eq(userBeSessions.ipaddress, ipAddress) &&eq(userBeSessions.walletaddress, walletAddress) && eq(userBeSessions.jwt, jwt));
+}
+
 
 // ************** UsersPgTable ****************** //
 export type SelectUser = typeof users.$inferSelect;
@@ -121,11 +151,11 @@ export async function getUserProfileByUsername(username: string) {
   }).from(users).where(eq(users.username, username));
 }
 
-export async function createUserProfile(user: Partial<User>) {
+export async function createUserProfile(user: Partial<User>): Promise<{ insertedId: number }[] | null> {
   if (!user || user.walletaddress === undefined || user.walletaddress?.length < 5 ){
     return null;
   }
-  return db.insert(users).values({...user});
+  return db.insert(users).values({...user}).returning({ insertedId: users.id });
 }
 
 export async function updateUserProfile(user: Partial<User>) {
@@ -158,7 +188,7 @@ export async function getConsensusSessions() {
   return db.select().from(consensusSessions);
 }
 
-export async function createConsensusSession(session: ConsensusSessionDto) {
+export async function createConsensusSession(session: Partial<ConsensusSessionDto>) {
   return db.insert(consensusSessions).values({
     sessiontype: session.sessiontype,
     rankinglimit: session.rankinglimit,
@@ -166,7 +196,15 @@ export async function createConsensusSession(session: ConsensusSessionDto) {
     description: session.description,
     sessionstatus: session.sessionstatus,
     modifiedbyid: session.modifiedbyid,
-  });
+  }).returning({ sessionId: consensusSessions.sessionId });
 }
 
-// ************** UsersPgTable ****************** //
+// ************** ConsensusGroupsPgTable ****************** //
+
+export async function createConsensusGroup(sessionId: number, modifiedById: number) {
+  return db.insert(consensusGroups).values({
+    sessionid: sessionId,
+    groupstatus: 0,
+    modifiedbyid: modifiedById,
+  });
+}
