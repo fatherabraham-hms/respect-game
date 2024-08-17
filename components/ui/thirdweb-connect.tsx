@@ -1,5 +1,5 @@
 import { ConnectButton } from 'thirdweb/react';
-import { base } from 'thirdweb/chains';
+import { base, optimism, optimismSepolia } from 'thirdweb/chains';
 // https://portal.thirdweb.com/connect/auth/frameworks/next
 import { client } from '@/lib/client';
 import {
@@ -34,6 +34,7 @@ export default function Connect() {
   }
 
   return <ConnectButton
+    chains={[optimism, optimismSepolia]}
     client={client}
     onDisconnect={() => {}}
     auth={{

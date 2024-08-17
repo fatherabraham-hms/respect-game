@@ -4,36 +4,42 @@ import {
   setUserLoginStatusById,
   getUserProfileByWalletAddress,
   createConsensusSession,
-  ConsensusSessionDto, updateUserProfile, createUserProfile, getAllUsers, SelectUser
+  ConsensusSessionDto,
+  updateUserProfile,
+  createUserProfile,
+  getAllUsers,
+  SelectUser,
+  getBeUserSession,
+  createBeUserSession
 } from '@/lib/db';
-import { VerifyLoginPayloadParams, createAuth } from "thirdweb/auth";
-import { privateKeyAccount } from "thirdweb/wallets";
-import { client } from "@/lib/client";
-import { cookies } from "next/headers";
-import {
-  getLoggedInWalletAddress,
-  resetLoggedInWalletAddress,
-  setLoggedInWalletAddress
-} from '../data/session/server_session';
+import { VerifyLoginPayloadParams, createAuth } from 'thirdweb/auth';
+import { privateKeyAccount } from 'thirdweb/wallets';
+import { client } from '@/lib/client';
+import { cookies, headers } from 'next/headers';
 import { User } from '@/lib/dtos/user.dto';
+
+let isDevEnv = false;
+if (process.env.NODE_ENV === 'development') {
+  isDevEnv = true;
+}
 
 /*********** THIRDWEB AUTHENTICATION ***********/
 // Checking JWT should be sufficient for most cases to verify that Client Server tampering is not happening
 // https://medium.com/swlh/hacking-json-web-tokens-jwts-9122efe91e4a
-const privateKey = process.env.THIRDWEB_ADMIN_PRIVATE_KEY || "";
+const privateKey = process.env.THIRDWEB_ADMIN_PRIVATE_KEY || '';
 
 if (!privateKey) {
-  throw new Error("Missing THIRDWEB_ADMIN_PRIVATE_KEY in .env file.");
+  throw new Error('Missing THIRDWEB_ADMIN_PRIVATE_KEY in .env file.');
 }
 
 const thirdwebAuth = createAuth({
-  domain: process.env.NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN || "",
+  domain: process.env.NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN || '',
   adminAccount: privateKeyAccount({ client, privateKey }),
-  client: client,
+  client: client
 });
 
 async function checkJWT() {
-  const jwt = cookies().get("jwt");
+  const jwt = cookies().get('jwt');
   if (!jwt?.value) {
     return null;
   }
@@ -43,7 +49,22 @@ async function checkJWT() {
   }
 }
 
-export async function generatePayload(param: { address: string, chainId: number}) {
+async function isAuthorized() {
+  await checkJWT();
+  const jwt = cookies().get('jwt');
+  const activeWalletAddress = cookies().get('activeWalletAddress');
+  const ipaddress = (headers().get('x-forwarded-for') ?? '127.0.0.1').split(',')[0];
+  if (!ipaddress || !activeWalletAddress?.value || !jwt?.value) {
+    return null;
+  }
+  const session = await getBeUserSession(ipaddress, activeWalletAddress.value, jwt?.value || '');
+  if (!session || session.length === 0) {
+    return null;
+  }
+  return session[0];
+}
+
+export async function generatePayload(param: { address: string, chainId: number }) {
   param.chainId = 1;
   return await thirdwebAuth.generatePayload(param);
 }
@@ -52,12 +73,27 @@ export async function login(payload: VerifyLoginPayloadParams) {
   const verifiedPayload = await thirdwebAuth.verifyPayload(payload);
   if (verifiedPayload.valid) {
     const jwt = await thirdwebAuth.generateJWT({
-      payload: verifiedPayload.payload,
+      payload: verifiedPayload.payload
     });
-    cookies().set("jwt", jwt);
+    cookies().set('jwt', jwt, { secure: !isDevEnv, expires: Date.now() + 1000 * 60 * 60 * 24 * 7 });
     if (verifiedPayload?.payload?.address) {
+      cookies().set('activeWalletAddress', verifiedPayload?.payload?.address, {
+        secure: !isDevEnv,
+        expires: Date.now() + 1000 * 60 * 60 * 24 * 7
+      });
       await createUserAccountIfNotExists(verifiedPayload.payload.address);
-      await setLoggedInWalletAddress(verifiedPayload.payload.address);
+      // TODO only create user session if it does not exist!
+      await createBeUserSession({
+        sessionid: undefined,
+        userid: 1,
+        ipaddress: (headers().get('x-forwarded-for') ?? '127.0.0.1').split(',')[0],
+        walletaddress: verifiedPayload.payload.address,
+        jwt: jwt,
+        jsondata: '',
+        expires: new Date(),
+        created: new Date(),
+        updated: new Date()
+      });
       await setUserLoginStatusById(verifiedPayload.payload.address, true);
       return verifiedPayload.payload.address;
     }
@@ -71,29 +107,31 @@ async function createUserAccountIfNotExists(address: string) {
       walletaddress: address,
       name: undefined,
       username: undefined,
-      email: "",
-      telegram: "",
+      email: '',
+      telegram: ''
     });
   }
 }
 
 export async function isLoggedInAction(address: string): Promise<boolean> {
   await checkJWT();
+  const session = await isAuthorized();
   const dbResult = await getUserProfileByWalletAddress(address);
-  if (dbResult && dbResult[0]?.loggedin) {
-    await setLoggedInWalletAddress(address);
+  if (dbResult && dbResult.length > 0 && dbResult[0].loggedin && session && session?.sessionid?.length > 10) {
+    return true;
   }
-  return dbResult && dbResult[0]?.loggedin ? dbResult.length > 0 && dbResult[0].loggedin : false;
+  return false;
 }
 
 export async function logout() {
   await checkJWT();
-  cookies().delete("jwt");
-  const loggedInWalletAddress = await getLoggedInWalletAddress();
-    if (loggedInWalletAddress) {
-      await setUserLoginStatusById(loggedInWalletAddress, false);
-    }
-  await resetLoggedInWalletAddress();
+  const activeWalletAddress = cookies().get('activeWalletAddress');
+  if (activeWalletAddress?.value) {
+    await setUserLoginStatusById(activeWalletAddress?.value, false);
+  }
+  // TODO invalidate session
+  cookies().delete('activeWalletAddress');
+  cookies().delete('jwt');
 }
 
 /*********** USERS ***********/
@@ -137,31 +175,30 @@ export async function deleteUser(walletAddr: string) {
 }
 
 export async function isLoggedInUserAdmin(): Promise<boolean> {
-  await checkJWT();
-  const admins = process.env.RESPECT_GAME_ADMINS?.split(",") || [];
-  const loggedInWalletAddress = await getLoggedInWalletAddress();
-  if (!loggedInWalletAddress) {
-    return false;
+  const admins = process.env.RESPECT_GAME_ADMINS?.split(',') || [];
+  const session = await isAuthorized();
+  if (session) {
+    return admins?.some((addr) => addr === session?.walletaddress);
   }
-  return admins?.some((addr) => addr === loggedInWalletAddress);
-
+  return false;
 }
 
 /*********** CONSENSUS SESSIONS ***********/
 export async function createConsensusSessionAction(session: ConsensusSessionDto) {
   await checkJWT();
   if (Object.keys(session)?.length === 0) {
-    throw new Error("Session is empty");
+    throw new Error('Session is empty');
   }
   const isAdmin = await isLoggedInUserAdmin();
   if (!isAdmin) {
-    throw new Error("Not allowed to create session");
+    throw new Error('Not allowed to create session');
   }
   return createConsensusSession(session);
 }
 
 /*********** CONSENSUS GROUPS ***********/
-export async function createConsensusGroup() {}
+export async function createConsensusGroup() {
+}
 
 
 /*********** CONSENSUS GROUP MEMBERS ***********/

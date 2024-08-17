@@ -2,7 +2,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { VercelPgDatabase } from 'drizzle-orm/vercel-postgres';
 import {
   drizzle as LocalDrizzle,
@@ -10,12 +10,17 @@ import {
 } from "drizzle-orm/postgres-js";
 import postgres from 'postgres';
 import { UsersPgTable } from '@/lib/postgres_drizzle/users.orm';
+import { ConsensusGroupsPgTable } from '@/lib/postgres_drizzle/consensus_groups.orm';
 import { ConsensusSessionsPgTable } from '@/lib/postgres_drizzle/consensus_sessions.orm';
 import { User } from '@/lib/dtos/user.dto';
+import { User_be_sessionsOrm } from '@/lib/postgres_drizzle/user_be_sessions.orm';
+import { UserBeSessionsDto } from '@/lib/dtos/user-be-sessions.dto';
 
 // ************** TABLES ****************** //
 const users = UsersPgTable;
 const consensusSessions = ConsensusSessionsPgTable;
+const consensusGroups = ConsensusGroupsPgTable;
+const userBeSessions = User_be_sessionsOrm;
 
 
 // -- create a table to store userid with groupid and sessionid
@@ -48,6 +53,31 @@ if (process.env.NODE_ENV === 'production') {
   const migrationClient = postgres(process.env.POSTGRES_URL as string);
   db = LocalDrizzle(migrationClient);
 }
+
+// ************** UserBeSessionPgTable ****************** //
+export type SelectUserBeSession = typeof userBeSessions.$inferSelect;
+export async function getBeUserSession(ipAddress: string, walletAddress: string, jwt: string) {
+  return db.select().from(userBeSessions)
+    .where(eq(userBeSessions.ipaddress, ipAddress)
+      && eq(userBeSessions.walletaddress, walletAddress)
+      && sql.raw(`${userBeSessions.expires} > CURRENT_TIMESTAMP`)
+      && eq(userBeSessions.jwt, jwt));
+}
+
+export async function createBeUserSession(session: Partial<UserBeSessionsDto>) {
+  delete session.sessionid;
+  return db.insert(userBeSessions).values({
+    ...session,
+    expires: new Date(Date.now() + 1000 * 60 * 60),
+    created: new Date(),
+    updated: new Date(),
+  });
+}
+
+export async function deleteBeUserSession(ipAddress: string, walletAddress: string, jwt: string) {
+  return db.delete(userBeSessions).where(eq(userBeSessions.ipaddress, ipAddress) &&eq(userBeSessions.walletaddress, walletAddress) && eq(userBeSessions.jwt, jwt));
+}
+
 
 // ************** UsersPgTable ****************** //
 export type SelectUser = typeof users.$inferSelect;

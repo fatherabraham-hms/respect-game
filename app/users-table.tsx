@@ -38,9 +38,10 @@ export function UsersTable() {
     fetchData();
   }, [query, offset]);
 
-  function onClick() {
-    console.log('create group with addresses', groupAddresses);
-    console.log('create session', groupAddresses);
+  function createSessionHandler() {
+    // createConsensusSessionAction().then(() => {
+    //   toast.success('Session Created!');
+    // });
   }
 
   // if (isLoading) return <Spinner />
@@ -70,7 +71,7 @@ export function UsersTable() {
           className="mt-4 w-40"
           variant="default"
           disabled={groupAddresses?.length <= 1}
-          onClick={() => onClick()}
+          onClick={() => createSessionHandler()}
         >
           Create Session ({groupAddresses?.length || 0})
         </Button>
@@ -85,7 +86,7 @@ function UserRow({ user, groupAddresses, setGroupAddresses }: { user: User, grou
     if (event.target.checked) {
       setGroupAddresses([...groupAddresses, event.target.value]);
     } else {
-      setGroupAddresses(groupAddresses.filter((address) => address !== event.target));
+      setGroupAddresses(groupAddresses.filter((address) => address !== event.target.value));
     }
   }
   return (

@@ -10,6 +10,6 @@ export const ConsensusGroupsPgTable = pgTable('consensus_groups', {
   sessionid: integer('sessionid').references(() => ConsensusSessionsPgTable.sessionId),
   groupstatus: smallint('groupstatus'),
   modifiedbyid: integer('modifiedbyid').references(() => UsersPgTable.id),
-  created: timestamp('created', { mode: 'string'}),
-  updated: timestamp('updated', { mode: 'string' }).notNull().default(sql`now()`),
+  created: timestamp('created', { mode: 'date'}),
+  updated: timestamp('updated', { mode: 'date' }).notNull().default(sql`now()`),
 });

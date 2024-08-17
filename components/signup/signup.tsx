@@ -54,7 +54,7 @@ export function Signup() {
       router.push('/error');
     });
   };
-
+//https://v1.tailwindcss.com/components/forms
   return (
     <div>
       <form className="w-full max-w-sm" onSubmit={handleSubmit(onSubmit)}>
