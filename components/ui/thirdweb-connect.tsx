@@ -47,18 +47,16 @@ export default function Connect() {
         if (verifiedAddress) {
           const profile = await getUserProfile(verifiedAddress);
           const loggedIn = await isLoggedInSetContext(profile, verifiedAddress);
-          const updatedAuthContext = useContext(AuthContext);
           if (loggedIn && profile === null) {
             router.push('/signup');
           } else if (loggedIn
             && profile
             && 'walletAddress' in profile
-            && updatedAuthContext.isAdmin) {
+            && profile?.permissions && profile.permissions > 1) {
             router.push('/users');
           } else if (loggedIn
             && profile
-            && 'walletAddress' in profile
-            && !updatedAuthContext.isAdmin) {
+            && 'walletAddress' in profile) {
             router.push('/play');
           }
         }

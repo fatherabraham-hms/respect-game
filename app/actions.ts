@@ -81,19 +81,22 @@ export async function login(payload: VerifyLoginPayloadParams) {
         secure: !isDevEnv,
         expires: Date.now() + 1000 * 60 * 60 * 24 * 7
       });
+      const ipAddress = (headers().get('x-forwarded-for') ?? '127.0.0.1').split(',')[0];
       await createUserAccountIfNotExists(verifiedPayload.payload.address);
-      // TODO only create user session if it does not exist!
-      await createBeUserSession({
-        sessionid: undefined,
-        userid: 1,
-        ipaddress: (headers().get('x-forwarded-for') ?? '127.0.0.1').split(',')[0],
-        walletaddress: verifiedPayload.payload.address,
-        jwt: jwt,
-        jsondata: '',
-        expires: new Date(),
-        created: new Date(),
-        updated: new Date()
-      });
+      const validSession = await getBeUserSession(ipAddress, jwt, verifiedPayload?.payload?.address);
+      if (validSession?.length === 0) {
+        await createBeUserSession({
+          sessionid: undefined,
+          userid: 1,
+          ipaddress: ipAddress,
+          walletaddress: verifiedPayload.payload.address,
+          jwt: jwt,
+          jsondata: '',
+          expires: new Date(),
+          created: new Date(),
+          updated: new Date()
+        });
+      }
       await setUserLoginStatusById(verifiedPayload.payload.address, true);
       return verifiedPayload.payload.address;
     }

@@ -64,11 +64,15 @@ export async function getBeUserSession(ipAddress: string, walletAddress: string,
       && eq(userBeSessions.jwt, jwt));
 }
 
-export async function createBeUserSession(session: Partial<UserBeSessionsDto>) {
-  delete session.sessionid;
+export async function createBeUserSession(session: any) {
+  session.sessionid = undefined;
+  if (!(session?.ipaddress && session?.jwt && session?.walletaddress)
+    || !(session?.ipaddress?.length > 2 || session?.jwt?.length > 10 || session?.walletaddress?.length > 5)) {
+    return null;
+  }
   return db.insert(userBeSessions).values({
     ...session,
-    expires: new Date(Date.now() + 1000 * 60 * 60),
+    expires: new Date(Date.now() + 1000 * 60 * 60 * 4),
     created: new Date(),
     updated: new Date(),
   });

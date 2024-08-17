@@ -1,5 +1,5 @@
 export type UserBeSessionsDto = {
-  sessionid: string;
+  sessionid: string | undefined;
   userid: number;
   ipaddress: string;
   jwt: string;
