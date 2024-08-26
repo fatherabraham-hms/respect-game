@@ -14,13 +14,16 @@ import { ConsensusGroupsPgTable } from '@/lib/postgres_drizzle/consensus_groups.
 import { ConsensusSessionsPgTable } from '@/lib/postgres_drizzle/consensus_sessions.orm';
 import { User } from '@/lib/dtos/user.dto';
 import { User_be_sessionsOrm } from '@/lib/postgres_drizzle/user_be_sessions.orm';
-import { UserBeSessionsDto } from '@/lib/dtos/user-be-sessions.dto';
+import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
+import { ConsensusGroupsMembersPgTable } from '@/lib/postgres_drizzle/consensus_group_members.orm';
+
 
 // ************** TABLES ****************** //
 const users = UsersPgTable;
+const userBeSessions = User_be_sessionsOrm;
 const consensusSessions = ConsensusSessionsPgTable;
 const consensusGroups = ConsensusGroupsPgTable;
-const userBeSessions = User_be_sessionsOrm;
+const consensusGroupMembers = ConsensusGroupsMembersPgTable;
 
 
 // -- create a table to store userid with groupid and sessionid
@@ -143,6 +146,12 @@ export async function getUserProfileByWalletAddress(walletAddress: string) {
   }).from(users).limit(1).where(eq(users.walletaddress, walletAddress));
 }
 
+export async function getUserIdByWalletAddress(walletAddress: string) {
+  return db.select({
+    id: users.id
+  }).from(users).limit(1).where(eq(users.walletaddress, walletAddress));
+}
+
 export async function getUserProfileByUsername(username: string) {
   return db.selectDistinct({
     name: users.name,
@@ -186,13 +195,13 @@ export async function updateUserProfile(user: Partial<User>) {
 }
 
 // ************** ConsensusSessionsPgTable ****************** //
-export type ConsensusSessionDto = typeof consensusSessions.$inferSelect;
+export type ConsensusSessionDbDto = typeof consensusSessions.$inferSelect;
 
 export async function getConsensusSessions() {
   return db.select().from(consensusSessions);
 }
 
-export async function createConsensusSession(session: ConsensusSessionDto) {
+export async function createConsensusSession(session: ConsensusSessionDto): Promise<any> {
   return db.insert(consensusSessions).values({
     sessiontype: session.sessiontype,
     rankinglimit: session.rankinglimit,
@@ -200,7 +209,22 @@ export async function createConsensusSession(session: ConsensusSessionDto) {
     description: session.description,
     sessionstatus: session.sessionstatus,
     modifiedbyid: session.modifiedbyid,
+  }).returning({
+    sessionid: consensusSessions.sessionid
   });
+}
+
+// ************** ConsensusGroupsPgTable ****************** //
+export type ConsensusGroupsDbDto = typeof consensusGroups.$inferSelect;
+
+export async function createConsensusGroup(sessionid: string, groupAddresses: string[]) {
+  // const groupInsert = db.insert(consensusGroups).values({
+  //
+  // });
+  // const membersInsert = db.insert(consensusGroupMembers).values({});
+console.log('sessionid', sessionid);
+console.log('groupAddresses', groupAddresses);
+  return true;
 }
 
 // ************** UsersPgTable ****************** //

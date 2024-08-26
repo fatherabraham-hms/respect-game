@@ -4,19 +4,19 @@ import {
   setUserLoginStatusById,
   getUserProfileByWalletAddress,
   createConsensusSession,
-  ConsensusSessionDto,
   updateUserProfile,
   createUserProfile,
   getAllUsers,
   SelectUser,
   getBeUserSession,
-  createBeUserSession
+  createBeUserSession, createConsensusGroup, getUserIdByWalletAddress
 } from '@/lib/db';
 import { VerifyLoginPayloadParams, createAuth } from 'thirdweb/auth';
 import { privateKeyAccount } from 'thirdweb/wallets';
 import { client } from '@/lib/client';
 import { cookies, headers } from 'next/headers';
 import { User } from '@/lib/dtos/user.dto';
+import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
 
 let isDevEnv = false;
 if (process.env.NODE_ENV === 'development') {
@@ -187,24 +187,55 @@ export async function isLoggedInUserAdmin(): Promise<boolean> {
 }
 
 /*********** CONSENSUS SESSIONS ***********/
-export async function createConsensusSessionAction(session: ConsensusSessionDto) {
+const defaultConsensusSession: ConsensusSessionDto = {
+  sessionid: 0,
+  sessiontype: 0,
+  title: 'Default Session',
+  description: 'Template for consensus sessions',
+  modifiedbyid: 0,
+  sessionstatus: null,
+  rankinglimit: 6,
+  created: new Date(),
+  updated: new Date(),
+};
+
+export async function createConsensusSessionAndUserGroupAction(session: ConsensusSessionDto = defaultConsensusSession, groupAddresses: string[]) {
   await checkJWT();
-  if (Object.keys(session)?.length === 0) {
+  if (Object?.keys(session)?.length === 0) {
     throw new Error('Session is empty');
   }
   const isAdmin = await isLoggedInUserAdmin();
   if (!isAdmin) {
     throw new Error('Not allowed to create session');
   }
-  return createConsensusSession(session);
+  const activeAdminWalletAddress = cookies().get('activeWalletAddress');
+  if (!activeAdminWalletAddress?.value) {
+    throw new Error('No active wallet address');
+  }
+  const userId = await getUserIdByWalletAddress(activeAdminWalletAddress.value);
+  if (!userId || userId.length === 0) {
+    throw new Error('No user found');
+  }
+  session.modifiedbyid = userId[0].id;
+  const sessionid = await createConsensusSession(session);
+  if (sessionid) {
+    const groupCreated = await createConsensusGroup(sessionid, groupAddresses);
+    return groupCreated;
+  }
 }
 
 /*********** CONSENSUS GROUPS ***********/
-export async function createConsensusGroup() {
-}
+// export async function createConsensusGroupAction() {
+// }
 
+// INSERT INTO consensus_groups (sessionid, groupstatus, modifiedbyid, created, updated) VALUES (8, 1, 1, NOW(), NOW());
+//
+// -- add users to the groups
+// INSERT INTO consensus_group_members (groupid, userid, created, updated) VALUES (1, 1, NOW(), NOW());
 
 /*********** CONSENSUS GROUP MEMBERS ***********/
+// export async function addGroupMembersAction() {
+// }
 
 /*********** CONSENSUS VOTES ***********/
 

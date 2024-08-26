@@ -1,11 +1,10 @@
 "use client";
 import { useContext, useState } from 'react';
-import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
 import { RankingSelector } from '@/app/ranking-selector';
 import useSWR from 'swr';
 import { Button } from '@/components/ui/button';
-import { createConsensusSessionAction } from '@/app/actions';
 import { AuthContext } from '../../data/context/Contexts';
+import { ConsensusSessionSetupModel } from '@/lib/models/consensus-session-setup.model';
 
 export function ConsensusSession() {
   const [currentSession, setCurrentSession] = useState({
@@ -13,7 +12,7 @@ export function ConsensusSession() {
     attendees: [],
     rankingScheme: 'numeric-descending',
     rankings: {}
-  } as ConsensusSessionDto);
+  } as ConsensusSessionSetupModel);
 
   const fetcher = (...args: any[]) => fetch(`/api/users`).then(res => res.json())
   function useUsers () {
@@ -31,13 +30,13 @@ export function ConsensusSession() {
   const authContext = useContext(AuthContext);
 
   function handleStartSession() {
-    const mySession = currentSession as any;
-    createConsensusSessionAction(mySession).then(() => {
-      setCurrentSession({
-        ...mySession,
-        attendees: users
-      });
-    });
+    const mySession = currentSession as ConsensusSessionSetupModel;
+    // createConsensusSessionAndUserGroupAction(mySession).then(() => {
+    //   setCurrentSession({
+    //     ...mySession,
+    //     attendees: users
+    //   });
+    // });
   }
 
   return (

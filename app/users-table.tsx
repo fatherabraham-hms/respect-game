@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { User } from '@/lib/dtos/user.dto';
 import { useEffect, useState } from 'react';
-import { getUsers } from '@/app/actions';
+import { createConsensusSessionAndUserGroupAction, getUsers } from '@/app/actions';
 import toast from 'react-hot-toast';
 
 
@@ -39,9 +39,12 @@ export function UsersTable() {
   }, [query, offset]);
 
   function createSessionHandler() {
-    // createConsensusSessionAction().then(() => {
-    //   toast.success('Session Created!');
-    // });
+    console.log('groupAddresses ', groupAddresses);
+    createConsensusSessionAndUserGroupAction(undefined, groupAddresses).then((resp) => {
+      if (resp) {
+        toast.success('Session Created!');
+      }
+    }).catch((error) => toast.error('Oops! An error occured, please try again!'));
   }
 
   // if (isLoading) return <Spinner />
