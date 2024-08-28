@@ -193,14 +193,16 @@ const defaultConsensusSession: ConsensusSessionDto = {
   title: 'Default Session',
   description: 'Template for consensus sessions',
   modifiedbyid: 0,
-  sessionstatus: null,
+  sessionstatus: 0,
   rankinglimit: 6,
   created: new Date(),
   updated: new Date(),
 };
 
-export async function createConsensusSessionAndUserGroupAction(session: ConsensusSessionDto = defaultConsensusSession, groupAddresses: string[]) {
+export async function createConsensusSessionAndUserGroupAction(groupAddresses: string[]) {
   await checkJWT();
+  const session: ConsensusSessionDto = defaultConsensusSession;
+  // TODO - check incoming session if updated
   if (Object?.keys(session)?.length === 0) {
     throw new Error('Session is empty');
   }
@@ -212,16 +214,20 @@ export async function createConsensusSessionAndUserGroupAction(session: Consensu
   if (!activeAdminWalletAddress?.value) {
     throw new Error('No active wallet address');
   }
-  const userId = await getUserIdByWalletAddress(activeAdminWalletAddress.value);
-  if (!userId || userId.length === 0) {
+  const userIdResp = await getUserIdByWalletAddress(activeAdminWalletAddress.value);
+  if (!userIdResp || userIdResp.length === 0 || typeof userIdResp[0].id !== 'number') {
     throw new Error('No user found');
   }
-  session.modifiedbyid = userId[0].id;
-  const sessionid = await createConsensusSession(session);
-  if (sessionid) {
-    const groupCreated = await createConsensusGroup(sessionid, groupAddresses);
+  const userid = userIdResp[0].id;
+  session.modifiedbyid = userid;
+  const consensusSessionResponse = await createConsensusSession(session);
+  if (consensusSessionResponse
+    && consensusSessionResponse.length > 0
+    && typeof consensusSessionResponse[0].sessionid === 'number') {
+    const groupCreated = await createConsensusGroup(consensusSessionResponse[0].sessionid, groupAddresses, userid);
     return groupCreated;
   }
+  return false;
 }
 
 /*********** CONSENSUS GROUPS ***********/

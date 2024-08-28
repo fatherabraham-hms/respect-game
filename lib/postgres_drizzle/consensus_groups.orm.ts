@@ -7,7 +7,7 @@ import { sql } from 'drizzle-orm';
 
 export const ConsensusGroupsPgTable = pgTable('consensus_groups', {
   groupid: serial('groupid').primaryKey(),
-  sessionid: integer('sessionid').references(() => ConsensusSessionsPgTable.sessionId),
+  sessionid: integer('sessionid').references(() => ConsensusSessionsPgTable.sessionid),
   groupstatus: smallint('groupstatus'),
   modifiedbyid: integer('modifiedbyid').references(() => UsersPgTable.id),
   created: timestamp('created', { mode: 'date'}),

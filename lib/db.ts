@@ -49,12 +49,14 @@ if (process.env.NODE_ENV === 'production') {
     neon(process.env.POSTGRES_URL!, {
       fetchOptions: {
         cache: 'no-store'
-      }
+      },
     })
   );
 } else {
   const migrationClient = postgres(process.env.POSTGRES_URL as string);
-  db = LocalDrizzle(migrationClient);
+  db = LocalDrizzle(migrationClient, {
+    logger: true
+  });
 }
 
 // ************** UserBeSessionPgTable ****************** //
@@ -201,7 +203,7 @@ export async function getConsensusSessions() {
   return db.select().from(consensusSessions);
 }
 
-export async function createConsensusSession(session: ConsensusSessionDto): Promise<any> {
+export async function createConsensusSession(session: ConsensusSessionDto) {
   return db.insert(consensusSessions).values({
     sessiontype: session.sessiontype,
     rankinglimit: session.rankinglimit,
@@ -217,13 +219,38 @@ export async function createConsensusSession(session: ConsensusSessionDto): Prom
 // ************** ConsensusGroupsPgTable ****************** //
 export type ConsensusGroupsDbDto = typeof consensusGroups.$inferSelect;
 
-export async function createConsensusGroup(sessionid: string, groupAddresses: string[]) {
-  // const groupInsert = db.insert(consensusGroups).values({
-  //
-  // });
-  // const membersInsert = db.insert(consensusGroupMembers).values({});
-console.log('sessionid', sessionid);
-console.log('groupAddresses', groupAddresses);
+export async function createConsensusGroup(consensusSessionId: number, groupAddresses: string[], userid: number) {
+// create a transaction that inserts a row into consensus_groups and then inserts a row into consensus_group_members for each group member
+  await db.transaction(async (trx) => {
+    const groupInsert = trx.insert(consensusGroups).values({
+      sessionid: consensusSessionId,
+      groupstatus: 0,
+      modifiedbyid: userid,
+      created: new Date(),
+      updated: new Date(),
+    }).returning({
+      groupid: consensusGroups.groupid
+    });
+
+    const group = await groupInsert;
+    console.log('group', group);
+
+    // loop through the groupAddresses, and insert a consensusGroupMembers record for each one
+    for (const address of groupAddresses) {
+      const userIdResp = await trx.select({
+        id: users.id
+      }).from(users).where(eq(users.walletaddress, address));
+      if (userIdResp && userIdResp.length === 0) {
+        throw new Error('No user found');
+      }
+      await trx.insert(consensusGroupMembers).values({
+        groupid: group[0].groupid as number,
+        userid: userIdResp[0].id,
+        created: new Date(),
+        updated: new Date(),
+      });
+    }
+  });
   return true;
 }
 

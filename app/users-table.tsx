@@ -40,9 +40,10 @@ export function UsersTable() {
 
   function createSessionHandler() {
     console.log('groupAddresses ', groupAddresses);
-    createConsensusSessionAndUserGroupAction(undefined, groupAddresses).then((resp) => {
+    createConsensusSessionAndUserGroupAction(groupAddresses).then((resp) => {
       if (resp) {
         toast.success('Session Created!');
+        router.push('/play');
       }
     }).catch((error) => toast.error('Oops! An error occured, please try again!'));
   }

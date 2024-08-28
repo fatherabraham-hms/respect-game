@@ -4,7 +4,7 @@ export type ConsensusSessionDto =  {
   rankinglimit: number,
   title: string,
   description: string,
-  sessionstatus: number | null,
+  sessionstatus: number,
   modifiedbyid: number,
   created: Date,
   updated: Date,

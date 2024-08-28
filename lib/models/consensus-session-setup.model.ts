@@ -1,5 +1,5 @@
-import { User } from 'next-auth';
 import { UserRanking } from '@/lib/dtos/user-ranking.dto';
+import { User } from '@/lib/dtos/user.dto';
 
 export type ConsensusSessionSetupModel =  {
   groupNum: number,
