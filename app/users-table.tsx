@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { User } from '@/lib/dtos/user.dto';
 import { useEffect, useState } from 'react';
-import { getUsers } from '@/app/actions';
+import { createConsensusSessionAndUserGroupAction, getUsers } from '@/app/actions';
 import toast from 'react-hot-toast';
 
 
@@ -38,9 +38,14 @@ export function UsersTable() {
     fetchData();
   }, [query, offset]);
 
-  function onClick() {
-    console.log('create group with addresses', groupAddresses);
-    console.log('create session', groupAddresses);
+  function createSessionHandler() {
+    console.log('groupAddresses ', groupAddresses);
+    createConsensusSessionAndUserGroupAction(groupAddresses).then((resp) => {
+      if (resp) {
+        toast.success('Session Created!');
+        router.push('/play');
+      }
+    }).catch((error) => toast.error('Oops! An error occured, please try again!'));
   }
 
   // if (isLoading) return <Spinner />
@@ -70,7 +75,7 @@ export function UsersTable() {
           className="mt-4 w-40"
           variant="default"
           disabled={groupAddresses?.length <= 1}
-          onClick={() => onClick()}
+          onClick={() => createSessionHandler()}
         >
           Create Session ({groupAddresses?.length || 0})
         </Button>
@@ -85,7 +90,7 @@ function UserRow({ user, groupAddresses, setGroupAddresses }: { user: User, grou
     if (event.target.checked) {
       setGroupAddresses([...groupAddresses, event.target.value]);
     } else {
-      setGroupAddresses(groupAddresses.filter((address) => address !== event.target));
+      setGroupAddresses(groupAddresses.filter((address) => address !== event.target.value));
     }
   }
   return (

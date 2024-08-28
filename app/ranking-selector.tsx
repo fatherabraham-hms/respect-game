@@ -5,16 +5,20 @@ import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
 import { useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { UserRanking } from '@/lib/dtos/user-ranking.dto';
+import { ConsensusSessionSetupModel } from '@/lib/models/consensus-session-setup.model';
 
 // TODO: https://tailwindcomponents.com/component/radio-buttons
 
-export function RankingSelector({ session, setSession }: { session: ConsensusSessionDto, setSession: (session: ConsensusSessionDto) => void }) {
+export function RankingSelector({ session, setSession }: { session:  ConsensusSessionSetupModel, setSession: (session: ConsensusSessionSetupModel) => void }) {
   const [votingRound, setVotingRound] = useState<{ [index: number]: UserRanking }>({});
   const [currentRankNumber, setCurrentRankNumber] = useState(session.rankingScheme === 'numeric-descending' ? 6 : 1);
   const [currentUserHasVoted, setCurrentUserHasVoted] = useState(false);
 
   // STATE
   function checkConsensusReached() {
+    if (!votingRound) {
+      return false;
+    }
     const totalVotes = Object.values(votingRound).reduce((acc, ranking) => acc + ranking.votes, 0);
     const attendees = session.attendees.length;
     return totalVotes >= attendees * .75;
@@ -24,7 +28,7 @@ export function RankingSelector({ session, setSession }: { session: ConsensusSes
     if (!walletAddress || !attestation) {
       return;
     }
-    const user = session.attendees.find((user) => user.walletaddress === walletAddress);
+    const user = session.attendees.find((user: User) => user.walletaddress === walletAddress);
     if (user && session.rankingScheme === 'numeric-descending') {
       handleNumericVote(user, attestation);
     }

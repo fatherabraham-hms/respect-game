@@ -1,9 +1,11 @@
-import { User } from '@/lib/dtos/user.dto';
-import { UserRanking } from '@/lib/dtos/user-ranking.dto';
-
 export type ConsensusSessionDto =  {
-  groupNum: number,
-  attendees: User[],
-  rankingScheme: 'numeric-descending' | 'numeric-ascending';
-  rankings: { [key: string]: UserRanking }
+  sessionid: number,
+  sessiontype: number,
+  rankinglimit: number,
+  title: string,
+  description: string,
+  sessionstatus: number,
+  modifiedbyid: number,
+  created: Date,
+  updated: Date,
 };

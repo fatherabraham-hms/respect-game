@@ -2,7 +2,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { VercelPgDatabase } from 'drizzle-orm/vercel-postgres';
 import {
   drizzle as LocalDrizzle,
@@ -10,12 +10,20 @@ import {
 } from "drizzle-orm/postgres-js";
 import postgres from 'postgres';
 import { UsersPgTable } from '@/lib/postgres_drizzle/users.orm';
+import { ConsensusGroupsPgTable } from '@/lib/postgres_drizzle/consensus_groups.orm';
 import { ConsensusSessionsPgTable } from '@/lib/postgres_drizzle/consensus_sessions.orm';
 import { User } from '@/lib/dtos/user.dto';
+import { User_be_sessionsOrm } from '@/lib/postgres_drizzle/user_be_sessions.orm';
+import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
+import { ConsensusGroupsMembersPgTable } from '@/lib/postgres_drizzle/consensus_group_members.orm';
+
 
 // ************** TABLES ****************** //
 const users = UsersPgTable;
+const userBeSessions = User_be_sessionsOrm;
 const consensusSessions = ConsensusSessionsPgTable;
+const consensusGroups = ConsensusGroupsPgTable;
+const consensusGroupMembers = ConsensusGroupsMembersPgTable;
 
 
 // -- create a table to store userid with groupid and sessionid
@@ -41,13 +49,44 @@ if (process.env.NODE_ENV === 'production') {
     neon(process.env.POSTGRES_URL!, {
       fetchOptions: {
         cache: 'no-store'
-      }
+      },
     })
   );
 } else {
   const migrationClient = postgres(process.env.POSTGRES_URL as string);
-  db = LocalDrizzle(migrationClient);
+  db = LocalDrizzle(migrationClient, {
+    logger: true
+  });
 }
+
+// ************** UserBeSessionPgTable ****************** //
+export type SelectUserBeSession = typeof userBeSessions.$inferSelect;
+export async function getBeUserSession(ipAddress: string, walletAddress: string, jwt: string) {
+  return db.select().from(userBeSessions)
+    .where(eq(userBeSessions.ipaddress, ipAddress)
+      && eq(userBeSessions.walletaddress, walletAddress)
+      && sql.raw(`${userBeSessions.expires} > CURRENT_TIMESTAMP`)
+      && eq(userBeSessions.jwt, jwt));
+}
+
+export async function createBeUserSession(session: any) {
+  session.sessionid = undefined;
+  if (!(session?.ipaddress && session?.jwt && session?.walletaddress)
+    || !(session?.ipaddress?.length > 2 || session?.jwt?.length > 10 || session?.walletaddress?.length > 5)) {
+    return null;
+  }
+  return db.insert(userBeSessions).values({
+    ...session,
+    expires: new Date(Date.now() + 1000 * 60 * 60 * 4),
+    created: new Date(),
+    updated: new Date(),
+  });
+}
+
+export async function deleteBeUserSession(ipAddress: string, walletAddress: string, jwt: string) {
+  return db.delete(userBeSessions).where(eq(userBeSessions.ipaddress, ipAddress) &&eq(userBeSessions.walletaddress, walletAddress) && eq(userBeSessions.jwt, jwt));
+}
+
 
 // ************** UsersPgTable ****************** //
 export type SelectUser = typeof users.$inferSelect;
@@ -109,6 +148,12 @@ export async function getUserProfileByWalletAddress(walletAddress: string) {
   }).from(users).limit(1).where(eq(users.walletaddress, walletAddress));
 }
 
+export async function getUserIdByWalletAddress(walletAddress: string) {
+  return db.select({
+    id: users.id
+  }).from(users).limit(1).where(eq(users.walletaddress, walletAddress));
+}
+
 export async function getUserProfileByUsername(username: string) {
   return db.selectDistinct({
     name: users.name,
@@ -152,7 +197,7 @@ export async function updateUserProfile(user: Partial<User>) {
 }
 
 // ************** ConsensusSessionsPgTable ****************** //
-export type ConsensusSessionDto = typeof consensusSessions.$inferSelect;
+export type ConsensusSessionDbDto = typeof consensusSessions.$inferSelect;
 
 export async function getConsensusSessions() {
   return db.select().from(consensusSessions);
@@ -166,7 +211,47 @@ export async function createConsensusSession(session: ConsensusSessionDto) {
     description: session.description,
     sessionstatus: session.sessionstatus,
     modifiedbyid: session.modifiedbyid,
+  }).returning({
+    sessionid: consensusSessions.sessionid
   });
+}
+
+// ************** ConsensusGroupsPgTable ****************** //
+export type ConsensusGroupsDbDto = typeof consensusGroups.$inferSelect;
+
+export async function createConsensusGroup(consensusSessionId: number, groupAddresses: string[], userid: number) {
+// create a transaction that inserts a row into consensus_groups and then inserts a row into consensus_group_members for each group member
+  await db.transaction(async (trx) => {
+    const groupInsert = trx.insert(consensusGroups).values({
+      sessionid: consensusSessionId,
+      groupstatus: 0,
+      modifiedbyid: userid,
+      created: new Date(),
+      updated: new Date(),
+    }).returning({
+      groupid: consensusGroups.groupid
+    });
+
+    const group = await groupInsert;
+    console.log('group', group);
+
+    // loop through the groupAddresses, and insert a consensusGroupMembers record for each one
+    for (const address of groupAddresses) {
+      const userIdResp = await trx.select({
+        id: users.id
+      }).from(users).where(eq(users.walletaddress, address));
+      if (userIdResp && userIdResp.length === 0) {
+        throw new Error('No user found');
+      }
+      await trx.insert(consensusGroupMembers).values({
+        groupid: group[0].groupid as number,
+        userid: userIdResp[0].id,
+        created: new Date(),
+        updated: new Date(),
+      });
+    }
+  });
+  return true;
 }
 
 // ************** UsersPgTable ****************** //
