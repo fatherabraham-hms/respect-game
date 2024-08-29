@@ -1,7 +1,6 @@
 'use client';
 
 import { User } from '@/lib/dtos/user.dto';
-import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
 import { useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { UserRanking } from '@/lib/dtos/user-ranking.dto';
@@ -16,11 +15,14 @@ export function RankingSelector({ session, setSession }: { session:  ConsensusSe
 
   // STATE
   function checkConsensusReached() {
-    if (!votingRound) {
+    if (Object.keys(votingRound)?.length === 0) {
       return false;
     }
     const totalVotes = Object.values(votingRound).reduce((acc, ranking) => acc + ranking.votes, 0);
     const attendees = session.attendees.length;
+    if (attendees === 0) {
+      return false;
+    }
     return totalVotes >= attendees * .75;
   }
 

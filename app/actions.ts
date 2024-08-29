@@ -9,7 +9,11 @@ import {
   getAllUsers,
   SelectUser,
   getBeUserSession,
-  createBeUserSession, createConsensusGroup, getUserIdByWalletAddress
+  createBeUserSession,
+  createConsensusGroup,
+  getUserIdByWalletAddress,
+  getLoggedInGroupMembersByGroupId,
+  getPendingGroupIdBySessionId
 } from '@/lib/db';
 import { VerifyLoginPayloadParams, createAuth } from 'thirdweb/auth';
 import { privateKeyAccount } from 'thirdweb/wallets';
@@ -17,6 +21,7 @@ import { client } from '@/lib/client';
 import { cookies, headers } from 'next/headers';
 import { User } from '@/lib/dtos/user.dto';
 import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
+import { ConsensusSessionSetupModel } from '@/lib/models/consensus-session-setup.model';
 
 let isDevEnv = false;
 if (process.env.NODE_ENV === 'development') {
@@ -196,7 +201,7 @@ const defaultConsensusSession: ConsensusSessionDto = {
   sessionstatus: 0,
   rankinglimit: 6,
   created: new Date(),
-  updated: new Date(),
+  updated: new Date()
 };
 
 export async function createConsensusSessionAndUserGroupAction(groupAddresses: string[]) {
@@ -225,23 +230,37 @@ export async function createConsensusSessionAndUserGroupAction(groupAddresses: s
     && consensusSessionResponse.length > 0
     && typeof consensusSessionResponse[0].sessionid === 'number') {
     const groupCreated = await createConsensusGroup(consensusSessionResponse[0].sessionid, groupAddresses, userid);
-    return groupCreated;
+    return groupCreated ? consensusSessionResponse[0].sessionid : null;
   }
-  return false;
+  return null;
+}
+
+export async function getConsensusSetupAction(consensusSessionId: number): Promise<ConsensusSessionSetupModel | null> {
+  if (consensusSessionId <= 0) {
+    return null;
+  }
+  await checkJWT();
+  // TODO - check if user has access to this session, since the sessionids are guessable
+  const groupid = await getPendingGroupIdBySessionId(consensusSessionId);
+  if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
+    return null;
+  }
+  const consensusSessionSetup: ConsensusSessionSetupModel = {
+    groupNum: groupid[0].groupid,
+    attendees: [],
+    rankingScheme: 'numeric-descending',
+    rankings: {}
+  };
+
+  const groupMembers = await getLoggedInGroupMembersByGroupId(groupid[0].groupid);
+  if (groupMembers && groupMembers.length > 0) {
+    consensusSessionSetup.attendees = [ ...groupMembers as User[] ];
+  }
+  return consensusSessionSetup;
 }
 
 /*********** CONSENSUS GROUPS ***********/
-// export async function createConsensusGroupAction() {
-// }
-
-// INSERT INTO consensus_groups (sessionid, groupstatus, modifiedbyid, created, updated) VALUES (8, 1, 1, NOW(), NOW());
-//
-// -- add users to the groups
-// INSERT INTO consensus_group_members (groupid, userid, created, updated) VALUES (1, 1, NOW(), NOW());
-
 /*********** CONSENSUS GROUP MEMBERS ***********/
-// export async function addGroupMembersAction() {
-// }
 
 /*********** CONSENSUS VOTES ***********/
 

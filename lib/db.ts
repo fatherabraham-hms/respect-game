@@ -2,7 +2,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq, sql } from 'drizzle-orm';
+import { eq, ne, and, sql } from 'drizzle-orm';
 import { VercelPgDatabase } from 'drizzle-orm/vercel-postgres';
 import {
   drizzle as LocalDrizzle,
@@ -199,8 +199,18 @@ export async function updateUserProfile(user: Partial<User>) {
 // ************** ConsensusSessionsPgTable ****************** //
 export type ConsensusSessionDbDto = typeof consensusSessions.$inferSelect;
 
-export async function getConsensusSessions() {
-  return db.select().from(consensusSessions);
+export async function getConsensusSession(sessionid: number) {
+  if (sessionid > 0) {
+    return db.selectDistinct({
+      sessionid: consensusSessions.sessionid,
+      sessiontype: consensusSessions.sessiontype,
+      rankinglimit: consensusSessions.rankinglimit,
+      title: consensusSessions.title,
+      description: consensusSessions.description,
+      sessionstatus: consensusSessions.sessionstatus
+    }).from(consensusSessions).where(and(eq(consensusSessions.sessionid, sessionid), ne(consensusSessions.sessionstatus, 3)));
+  }
+  return null;
 }
 
 export async function createConsensusSession(session: ConsensusSessionDto) {
@@ -253,5 +263,32 @@ export async function createConsensusGroup(consensusSessionId: number, groupAddr
   });
   return true;
 }
+
+// ************** ConsensusGroupsMembersPgTable ****************** //
+export async function getLoggedInGroupMembersByGroupId(groupId: number) {
+  // select all user records that are in the consensusGroupMembers table for the given groupId by joining the users table with the consensusGroupMembers table
+  const query = sql`
+    SELECT u.name, u.username, u.walletaddress 
+    FROM users u
+    INNER JOIN consensus_group_members cgm ON u.id = cgm.userid
+    INNER JOIN consensus_groups cg ON cg.groupid = cgm.groupid
+    INNER JOIN consensus_sessions cs ON cs.sessionid = cg.sessionid
+    WHERE u.loggedin = true 
+      AND cs.sessionstatus = 0 
+      AND cg.groupstatus = 0 
+      AND cgm.groupid = ${groupId}
+  `;
+  return db.execute(query);
+}
+
+export async function getPendingGroupIdBySessionId(consensusSessionId: number) {
+  if (consensusSessionId > 0) {
+    return db.select({
+      groupid: consensusGroups.groupid
+    }).from(consensusGroups).where(and(eq(consensusGroups.sessionid, consensusSessionId), eq(consensusGroups.groupstatus, 0)));
+  }
+  return null;
+}
+
 
 // ************** UsersPgTable ****************** //
