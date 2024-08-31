@@ -13,7 +13,7 @@ import {
   createConsensusGroup,
   getUserIdByWalletAddress,
   getLoggedInGroupMembersByGroupId,
-  getPendingGroupIdBySessionId
+  getPendingGroupIdBySessionId, isMemberOfSession
 } from '@/lib/db';
 import { VerifyLoginPayloadParams, createAuth } from 'thirdweb/auth';
 import { privateKeyAccount } from 'thirdweb/wallets';
@@ -240,7 +240,15 @@ export async function getConsensusSetupAction(consensusSessionId: number): Promi
     return null;
   }
   await checkJWT();
-  // TODO - check if user has access to this session, since the sessionids are guessable
+  const beSession = await isAuthorized();
+  if (!beSession || !beSession.sessionid || !beSession.walletaddress) {
+    return null;
+  }
+  const isAdmin = await isLoggedInUserAdmin();
+  const isMember = await isMemberOfSession(consensusSessionId, beSession.walletaddress);
+  if (!isAdmin && isMember?.length < 1) {
+    return null;
+  }
   const groupid = await getPendingGroupIdBySessionId(consensusSessionId);
   if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
     return null;

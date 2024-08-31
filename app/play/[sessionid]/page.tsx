@@ -12,16 +12,14 @@ export default function IndexPage({ params }: { params: { sessionid: string } })
     attendees: [],
     rankingScheme: 'numeric-descending',
     rankings: {}
-  } as ConsensusSessionSetupModel);
+  } as ConsensusSessionSetupModel | null);
 
   useEffect(() => {
     if (params.sessionid.length > 0) {
       const mySessionId = parseInt(params.sessionid);
       setConsensusSessionId(mySessionId);
       getConsensusSetupAction(mySessionId).then((consensusSessionSetup) => {
-        if (consensusSessionSetup && consensusSessionSetup.attendees.length > 0) {
           setCurrentSessionSetup(consensusSessionSetup);
-        }
       });
     }
   }, []);
@@ -31,7 +29,7 @@ export default function IndexPage({ params }: { params: { sessionid: string } })
       <h1 className="font-semibold text-lg md:text-2xl">Sorry, this session has ended.</h1>
     </div>);
 
-  if (consensusSessionId > 0) {
+  if (currentSessionSetup !== null && consensusSessionId > 0) {
     visibleElements = <RankingSelector
       session={currentSessionSetup}
       setSession={setCurrentSessionSetup}

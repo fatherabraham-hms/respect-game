@@ -226,6 +226,21 @@ export async function createConsensusSession(session: ConsensusSessionDto) {
   });
 }
 
+export async function isMemberOfSession(sessionid: number, walletaddress: string) {
+  // select all user records that are in the consensusGroupMembers table for the given groupId by joining the users table with the consensusGroupMembers table
+return db.select({
+  name: users.name,
+  username: users.username,
+  walletaddress: users.walletaddress
+}).from(users)
+  .innerJoin(consensusGroupMembers, eq(users.id, consensusGroupMembers.userid))
+  .innerJoin(consensusGroups, eq(consensusGroups.groupid, consensusGroupMembers.groupid))
+  .where(and(eq(users.walletaddress, walletaddress),
+    eq(consensusGroups.sessionid, sessionid),
+    eq(users.loggedin, true)))
+  .limit(1);
+}
+
 // ************** ConsensusGroupsPgTable ****************** //
 export type ConsensusGroupsDbDto = typeof consensusGroups.$inferSelect;
 
@@ -264,6 +279,16 @@ export async function createConsensusGroup(consensusSessionId: number, groupAddr
   return true;
 }
 
+export async function getPendingGroupIdBySessionId(consensusSessionId: number) {
+  if (consensusSessionId > 0) {
+    return db.select({
+      groupid: consensusGroups.groupid
+    }).from(consensusGroups).where(and(eq(consensusGroups.sessionid, consensusSessionId), eq(consensusGroups.groupstatus, 0)));
+  }
+  return null;
+}
+
+
 // ************** ConsensusGroupsMembersPgTable ****************** //
 export async function getLoggedInGroupMembersByGroupId(groupId: number) {
   // select all user records that are in the consensusGroupMembers table for the given groupId by joining the users table with the consensusGroupMembers table
@@ -280,15 +305,5 @@ export async function getLoggedInGroupMembersByGroupId(groupId: number) {
   `;
   return db.execute(query);
 }
-
-export async function getPendingGroupIdBySessionId(consensusSessionId: number) {
-  if (consensusSessionId > 0) {
-    return db.select({
-      groupid: consensusGroups.groupid
-    }).from(consensusGroups).where(and(eq(consensusGroups.sessionid, consensusSessionId), eq(consensusGroups.groupstatus, 0)));
-  }
-  return null;
-}
-
 
 // ************** UsersPgTable ****************** //
