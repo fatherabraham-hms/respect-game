@@ -13,7 +13,7 @@ import {
   createConsensusGroup,
   getUserIdByWalletAddress,
   getLoggedInGroupMembersByGroupId,
-  getPendingGroupIdBySessionId, isMemberOfSession
+  getPendingGroupIdBySessionId, isMemberOfSession, castConsensusVoteForUser, getCurrentVotesForSessionByRanking
 } from '@/lib/db';
 import { VerifyLoginPayloadParams, createAuth } from 'thirdweb/auth';
 import { privateKeyAccount } from 'thirdweb/wallets';
@@ -69,6 +69,16 @@ async function isAuthorized() {
   return session[0];
 }
 
+async function isMemberOfSessionAction(consensusSessionId: number): Promise<boolean> {
+  const beSession = await isAuthorized();
+  if (!beSession || !beSession.sessionid || !beSession.walletaddress) {
+    return false;
+  }
+  const isAdmin = await isLoggedInUserAdmin();
+  const isMember = await isMemberOfSession(consensusSessionId, beSession.walletaddress);
+  return !(!isAdmin && isMember?.length < 1);
+}
+
 export async function generatePayload(param: { address: string, chainId: number }) {
   param.chainId = 1;
   return await thirdwebAuth.generatePayload(param);
@@ -87,12 +97,15 @@ export async function login(payload: VerifyLoginPayloadParams) {
         expires: Date.now() + 1000 * 60 * 60 * 24 * 7
       });
       const ipAddress = (headers().get('x-forwarded-for') ?? '127.0.0.1').split(',')[0];
-      await createUserAccountIfNotExists(verifiedPayload.payload.address);
+      const accountIdResp = await createUserAccountIfNotExists(verifiedPayload.payload.address);
+      if (accountIdResp === null || accountIdResp.length === 0) {
+        return null;
+      }
       const validSession = await getBeUserSession(ipAddress, jwt, verifiedPayload?.payload?.address);
       if (validSession?.length === 0) {
         await createBeUserSession({
           sessionid: undefined,
-          userid: 1,
+          userid: accountIdResp?.[0]?.id || 0,
           ipaddress: ipAddress,
           walletaddress: verifiedPayload.payload.address,
           jwt: jwt,
@@ -108,9 +121,13 @@ export async function login(payload: VerifyLoginPayloadParams) {
   }
 }
 
-async function createUserAccountIfNotExists(address: string) {
-  const user = await getUserProfileByWalletAddress(address);
-  if (!user || user.length === 0) {
+/**
+ * Caution - this method must remain private so it does not expose the userid
+ * @param address
+ */
+async function createUserAccountIfNotExists(address: string): Promise<{id: number}[] | null> {
+  const useridResp = await getUserIdByWalletAddress(address);
+  if (!useridResp || useridResp.length === 0) {
     await createUserProfile({
       walletaddress: address,
       name: undefined,
@@ -118,11 +135,13 @@ async function createUserAccountIfNotExists(address: string) {
       email: '',
       telegram: ''
     });
+  } else if (useridResp && useridResp.length > 0 && typeof useridResp[0].id === 'number') {
+    return useridResp;
   }
+  return null;
 }
 
 export async function isLoggedInAction(address: string): Promise<boolean> {
-  await checkJWT();
   const session = await isAuthorized();
   const dbResult = await getUserProfileByWalletAddress(address);
   if (dbResult && dbResult.length > 0 && dbResult[0].loggedin && session && session?.sessionid?.length > 10) {
@@ -240,13 +259,8 @@ export async function getConsensusSetupAction(consensusSessionId: number): Promi
     return null;
   }
   await checkJWT();
-  const beSession = await isAuthorized();
-  if (!beSession || !beSession.sessionid || !beSession.walletaddress) {
-    return null;
-  }
-  const isAdmin = await isLoggedInUserAdmin();
-  const isMember = await isMemberOfSession(consensusSessionId, beSession.walletaddress);
-  if (!isAdmin && isMember?.length < 1) {
+  const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
+  if (!isMemberofSession) {
     return null;
   }
   const groupid = await getPendingGroupIdBySessionId(consensusSessionId);
@@ -257,19 +271,61 @@ export async function getConsensusSetupAction(consensusSessionId: number): Promi
     groupNum: groupid[0].groupid,
     attendees: [],
     rankingScheme: 'numeric-descending',
-    rankings: {}
+    votes: []
   };
 
   const groupMembers = await getLoggedInGroupMembersByGroupId(groupid[0].groupid);
   if (groupMembers && groupMembers.length > 0) {
-    consensusSessionSetup.attendees = [ ...groupMembers as User[] ];
+    consensusSessionSetup.attendees = [...groupMembers as User[]];
   }
   return consensusSessionSetup;
 }
 
 /*********** CONSENSUS GROUPS ***********/
+
 /*********** CONSENSUS GROUP MEMBERS ***********/
 
 /*********** CONSENSUS VOTES ***********/
+export async function setSingleVoteAction(
+  consensusSessionId: number,
+  consensusSessionSetupModel: ConsensusSessionSetupModel,
+  ranking: number,
+  walletAddress: string,
+  attestation: 'upvote' | 'downvote') {
+  const beSession = await isAuthorized();
+  if (!beSession || !beSession.sessionid || !beSession.walletaddress || !beSession.userid) {
+    return null;
+  }
+  const isAdmin = await isLoggedInUserAdmin();
+  const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
+  if (!isAdmin && !isMemberofSession) {
+    return null;
+  }
+  if (!consensusSessionSetupModel || !consensusSessionSetupModel.attendees || consensusSessionSetupModel.attendees.length === 0) {
+    throw new Error('Input session not valid');
+  }
+  const userIdResp = await getUserIdByWalletAddress(walletAddress);
+  if (!userIdResp || userIdResp.length === 0 || typeof userIdResp[0].id !== 'number') {
+    throw new Error('No current user found');
+  }
+  const userid = userIdResp[0].id;
+  if (consensusSessionSetupModel.rankingScheme === 'numeric-descending') {
+    await castConsensusVoteForUser({
+      votedfor: userid,
+      sessionid: consensusSessionId,
+      groupid: consensusSessionSetupModel.groupNum,
+      rankingvalue: ranking,
+      modifiedbyid: beSession.userid,
+      created: new Date(),
+      updated: new Date()
+    });
+  }
+  // TODO just return current ranking level votes here for convenience
+  return getCurrentVotesForSessionByRanking(
+    consensusSessionId,
+    consensusSessionSetupModel.groupNum,
+    ranking);
+}
+
 
 /*********** CONSENSUS STATUS ***********/

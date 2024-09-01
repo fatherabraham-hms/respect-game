@@ -14,14 +14,16 @@ import { User } from '@/lib/dtos/user.dto';
 import { useEffect, useState } from 'react';
 import { createConsensusSessionAndUserGroupAction, getUsers } from '@/app/actions';
 import toast from 'react-hot-toast';
+import { Spinner } from '@/components/icons';
 
 
 export function UsersTable() {
   const router = useRouter();
   const [users, setUsers] = useState<Partial<User[]>>([]);
   const [query, setQuery] = useState('');
-  const offset = 0;
   const [groupAddresses, setGroupAddresses] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const offset = 0;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,15 +41,17 @@ export function UsersTable() {
   }, [query, offset]);
 
   function createSessionHandler() {
+    setIsLoading(true);
     createConsensusSessionAndUserGroupAction(groupAddresses).then((resp) => {
       if (typeof resp === 'number') {
         toast.success('Session Created!');
         router.push(`/play/${resp}`);
       }
     }).catch((error) => toast.error('Oops! An error occured, please try again!'));
+    setIsLoading(false);
   }
 
-  // if (isLoading) return <Spinner />
+  if (isLoading) return <Spinner />
 
   return (
     <>

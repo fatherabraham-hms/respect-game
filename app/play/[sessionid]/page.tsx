@@ -11,7 +11,7 @@ export default function IndexPage({ params }: { params: { sessionid: string } })
     groupNum: 1,
     attendees: [],
     rankingScheme: 'numeric-descending',
-    rankings: {}
+    votes: []
   } as ConsensusSessionSetupModel | null);
 
   useEffect(() => {
@@ -31,7 +31,8 @@ export default function IndexPage({ params }: { params: { sessionid: string } })
 
   if (currentSessionSetup !== null && consensusSessionId > 0) {
     visibleElements = <RankingSelector
-      session={currentSessionSetup}
+      consensusSessionId={consensusSessionId}
+      rankingConfig={currentSessionSetup}
       setSession={setCurrentSessionSetup}
     />
   }

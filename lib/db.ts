@@ -2,7 +2,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq, ne, and, sql } from 'drizzle-orm';
+import { eq, ne, lt, and, sql, gt, count } from 'drizzle-orm';
 import { VercelPgDatabase } from 'drizzle-orm/vercel-postgres';
 import {
   drizzle as LocalDrizzle,
@@ -16,6 +16,8 @@ import { User } from '@/lib/dtos/user.dto';
 import { User_be_sessionsOrm } from '@/lib/postgres_drizzle/user_be_sessions.orm';
 import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
 import { ConsensusGroupsMembersPgTable } from '@/lib/postgres_drizzle/consensus_group_members.orm';
+import { ConsensusVotesPgTable } from '@/lib/postgres_drizzle/consensus_votes.orm';
+import { ConsensusVotesDto } from '@/lib/dtos/consensus-votes.dto';
 
 
 // ************** TABLES ****************** //
@@ -24,6 +26,7 @@ const userBeSessions = User_be_sessionsOrm;
 const consensusSessions = ConsensusSessionsPgTable;
 const consensusGroups = ConsensusGroupsPgTable;
 const consensusGroupMembers = ConsensusGroupsMembersPgTable;
+const consensusVotes = ConsensusVotesPgTable;
 
 
 // -- create a table to store userid with groupid and sessionid
@@ -63,16 +66,18 @@ if (process.env.NODE_ENV === 'production') {
 export type SelectUserBeSession = typeof userBeSessions.$inferSelect;
 export async function getBeUserSession(ipAddress: string, walletAddress: string, jwt: string) {
   return db.select().from(userBeSessions)
-    .where(eq(userBeSessions.ipaddress, ipAddress)
-      && eq(userBeSessions.walletaddress, walletAddress)
-      && sql.raw(`${userBeSessions.expires} > CURRENT_TIMESTAMP`)
-      && eq(userBeSessions.jwt, jwt));
+    .where(and(
+      eq(userBeSessions.ipaddress, ipAddress),
+      eq(userBeSessions.walletaddress, walletAddress),
+      gt(userBeSessions.expires, new Date()),
+      eq(userBeSessions.jwt, jwt)
+    ));
 }
 
 export async function createBeUserSession(session: any) {
   session.sessionid = undefined;
   if (!(session?.ipaddress && session?.jwt && session?.walletaddress)
-    || !(session?.ipaddress?.length > 2 || session?.jwt?.length > 10 || session?.walletaddress?.length > 5)) {
+    || !(session?.ipaddress?.length > 2 || !(session?.jwt?.length > 10) || !(session?.walletaddress?.length > 5))) {
     return null;
   }
   return db.insert(userBeSessions).values({
@@ -84,7 +89,7 @@ export async function createBeUserSession(session: any) {
 }
 
 export async function deleteBeUserSession(ipAddress: string, walletAddress: string, jwt: string) {
-  return db.delete(userBeSessions).where(eq(userBeSessions.ipaddress, ipAddress) &&eq(userBeSessions.walletaddress, walletAddress) && eq(userBeSessions.jwt, jwt));
+  return db.delete(userBeSessions).where(and(eq(userBeSessions.ipaddress, ipAddress), eq(userBeSessions.walletaddress, walletAddress) && eq(userBeSessions.jwt, jwt)));
 }
 
 
@@ -170,7 +175,9 @@ export async function createUserProfile(user: Partial<User>) {
   if (!user || user.walletaddress === undefined || user.walletaddress?.length < 5 ){
     return null;
   }
-  return db.insert(users).values({...user});
+  return db.insert(users).values({...user}).returning(
+    { id: users.id }
+  );
 }
 
 export async function updateUserProfile(user: Partial<User>) {
@@ -235,7 +242,9 @@ return db.select({
 }).from(users)
   .innerJoin(consensusGroupMembers, eq(users.id, consensusGroupMembers.userid))
   .innerJoin(consensusGroups, eq(consensusGroups.groupid, consensusGroupMembers.groupid))
+  .innerJoin(consensusSessions, eq(consensusSessions.sessionid, consensusGroups.sessionid))
   .where(and(eq(users.walletaddress, walletaddress),
+    lt(consensusSessions.sessionstatus, 2),
     eq(consensusGroups.sessionid, sessionid),
     eq(users.loggedin, true)))
   .limit(1);
@@ -307,3 +316,54 @@ export async function getLoggedInGroupMembersByGroupId(groupId: number) {
 }
 
 // ************** UsersPgTable ****************** //
+
+// ************** ConsensusVotesPgTable ****************** //
+
+/**
+ * Each user will only be allowed to vote 1 time in each round
+ * No need to delete votes because changing the vote is just an overwrite of
+ * the previous vote
+ * @param input
+ */
+export async function castConsensusVoteForUser(input: ConsensusVotesDto) {
+  const hasAlreadyVoted = await db.select({
+    votedfor: consensusVotes.votedfor
+  }).from(consensusVotes)
+    .where(and(eq(consensusVotes.sessionid, input.sessionid),
+      eq(consensusVotes.groupid, input.groupid),
+      eq(consensusVotes.votedfor, input.votedfor),
+      eq(consensusVotes.modifiedbyid, input.modifiedbyid),
+      eq(consensusVotes.rankingvalue, input.rankingvalue)));
+
+  const valuesToUpsert = {
+    votedfor: input.votedfor,
+    sessionid: input.sessionid,
+    groupid: input.groupid,
+    rankingvalue: input.rankingvalue,
+    modifiedbyid: input.modifiedbyid,
+    created: new Date(),
+    updated: new Date(),
+  }
+  if (hasAlreadyVoted.length > 0) {
+    return db.update(consensusVotes).set(valuesToUpsert)
+      .where(and(eq(consensusVotes.sessionid, input.sessionid),
+        eq(consensusVotes.groupid, input.groupid),
+        eq(consensusVotes.votedfor, input.votedfor),
+        eq(consensusVotes.rankingvalue, input.rankingvalue)));
+  }
+  return db.insert(consensusVotes).values(valuesToUpsert);
+}
+
+export async function getCurrentVotesForSessionByRanking(sessionid: number, groupid: number, rankingValue: number) {
+  return db.select({
+    walletaddress: users.walletaddress,
+    count: count(consensusVotes.votedfor),
+  }).from(consensusVotes)
+    .innerJoin(consensusSessions, eq(consensusSessions.sessionid, consensusVotes.sessionid))
+    .innerJoin(users, eq(users.id, consensusVotes.votedfor))
+    .where(and(eq(consensusVotes.sessionid, sessionid),
+      eq(consensusVotes.groupid, groupid),
+      eq(consensusVotes.rankingvalue, rankingValue),
+      lt(consensusSessions.sessionstatus, 2)))
+    .groupBy(users.walletaddress, consensusVotes.votedfor);
+}
