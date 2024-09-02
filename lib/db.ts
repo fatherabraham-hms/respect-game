@@ -344,12 +344,15 @@ export async function castConsensusVoteForUser(input: ConsensusVotesDto) {
     created: new Date(),
     updated: new Date(),
   }
-  if (hasAlreadyVoted.length > 0) {
+  if (hasAlreadyVoted.
+    length > 0) {
     return db.update(consensusVotes).set(valuesToUpsert)
       .where(and(eq(consensusVotes.sessionid, input.sessionid),
         eq(consensusVotes.groupid, input.groupid),
         eq(consensusVotes.votedfor, input.votedfor),
-        eq(consensusVotes.rankingvalue, input.rankingvalue)));
+        eq(consensusVotes.rankingvalue, input.rankingvalue),
+        eq(consensusVotes.modifiedbyid, input.modifiedbyid)
+      ));
   }
   return db.insert(consensusVotes).values(valuesToUpsert);
 }

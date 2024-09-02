@@ -1,10 +1,10 @@
 'use client';
 
 import { User } from '@/lib/dtos/user.dto';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { ConsensusSessionSetupModel, Vote } from '@/lib/models/consensus-session-setup.model';
-import { setSingleVoteAction } from '@/app/actions';
+import { getCurrentVotesForSessionByRankingAction, setSingleVoteAction } from '@/app/actions';
 
 // TODO: https://tailwindcomponents.com/component/radio-buttons
 
@@ -12,7 +12,26 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
   const [votingRound, setVotingRound] = useState<Vote[]>([]);
   const [currentRankNumber, setCurrentRankNumber] = useState(rankingConfig.rankingScheme === 'numeric-descending' ? 6 : 1);
 
-  // TODO - did the current user already vote? If so, load their vote..
+
+  useEffect(() => {
+    setCurrentRankNumber(rankingConfig.rankingScheme === 'numeric-descending' ? 6 : 1);
+    // fetch the current voting round with short polling
+    const fetchVotingRound = async () => {
+      const currentVotesResp = await getCurrentVotesForSessionByRankingAction(
+        consensusSessionId,
+        currentRankNumber
+      );
+      if(Array.isArray(currentVotesResp) && currentVotesResp.length > 0) {
+        setVotingRound(currentVotesResp as Vote[]);
+      }
+    };
+    fetchVotingRound();
+
+    const interval = setInterval(fetchVotingRound, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
 
   // STATE
   function checkConsensusReached() {
@@ -47,8 +66,8 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
       user.walletaddress,
       attestation
     ).then((votesResp: any) => {
-        if(votesResp && votesResp.value && votesResp.value.length > 0) {
-          setVotingRound(votesResp.value);
+        if(Array.isArray(votesResp) && votesResp.length > 0) {
+          setVotingRound(votesResp);
         }
     })
   }
@@ -89,7 +108,7 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
         className="text-sm text-gray-500 dark:text-gray-400">{rankingConfig.rankingScheme === 'numeric-descending' ? '6 is highest' : '1 is highest'}</span>
       <br />
       <form className="border shadow-sm rounded-lg">
-        {/*<pre>Session: {JSON.stringify(session, null, 2)}</pre>*/}
+        <pre>votingRound: {JSON.stringify(votingRound, null, 2)}</pre>
         {rankingConfig?.attendees?.map((user: User) => (
           // <pre>{JSON.stringify(user, null, 2)}</pre>
           <div key={user.walletaddress} className={'flex items-center'}>

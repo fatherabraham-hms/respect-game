@@ -327,5 +327,17 @@ export async function setSingleVoteAction(
     ranking);
 }
 
+export async function getCurrentVotesForSessionByRankingAction(consensusSessionId: number, ranking: number) {
+  await checkJWT();
+  const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
+  if (!isMemberofSession) {
+    return null;
+  }
+  const groupid = await getPendingGroupIdBySessionId(consensusSessionId);
+  if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
+    return null;
+  }
+  return getCurrentVotesForSessionByRanking(consensusSessionId, groupid[0].groupid, ranking);
+}
 
 /*********** CONSENSUS STATUS ***********/
