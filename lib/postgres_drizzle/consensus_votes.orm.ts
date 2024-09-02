@@ -6,6 +6,7 @@ import { smallint } from 'drizzle-orm/pg-core/columns/smallint';
 import { sql } from 'drizzle-orm';
 
 export const ConsensusVotesPgTable = pgTable('consensus_votes', {
+  voteid: integer('voteid').primaryKey(),
   votedfor: integer('votedfor').references(() => UsersPgTable.id),
   sessionid: integer('sessionid').references(() => ConsensusSessionsPgTable.sessionid),
   groupid: integer('groupid').references(() => ConsensusGroupsPgTable.groupid),

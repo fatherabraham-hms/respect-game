@@ -304,14 +304,14 @@ export async function setSingleVoteAction(
   if (!consensusSessionSetupModel || !consensusSessionSetupModel.attendees || consensusSessionSetupModel.attendees.length === 0) {
     throw new Error('Input session not valid');
   }
-  const userIdResp = await getUserIdByWalletAddress(walletAddress);
-  if (!userIdResp || userIdResp.length === 0 || typeof userIdResp[0].id !== 'number') {
+  const votedForResp = await getUserIdByWalletAddress(walletAddress);
+  if (!votedForResp || votedForResp.length === 0 || typeof votedForResp[0].id !== 'number') {
     throw new Error('No current user found');
   }
-  const userid = userIdResp[0].id;
+  const votedForUserId = votedForResp[0].id;
   if (consensusSessionSetupModel.rankingScheme === 'numeric-descending') {
-    await castConsensusVoteForUser({
-      votedfor: userid,
+    return await castConsensusVoteForUser({
+      votedfor: votedForUserId,
       sessionid: consensusSessionId,
       groupid: consensusSessionSetupModel.groupNum,
       rankingvalue: ranking,
@@ -320,11 +320,6 @@ export async function setSingleVoteAction(
       updated: new Date()
     });
   }
-  // TODO just return current ranking level votes here for convenience
-  return getCurrentVotesForSessionByRanking(
-    consensusSessionId,
-    consensusSessionSetupModel.groupNum,
-    ranking);
 }
 
 export async function getCurrentVotesForSessionByRankingAction(consensusSessionId: number, ranking: number) {

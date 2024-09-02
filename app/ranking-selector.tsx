@@ -27,7 +27,7 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
     };
     fetchVotingRound();
 
-    const interval = setInterval(fetchVotingRound, 3000);
+    const interval = setInterval(fetchVotingRound, 5000);
 
     return () => clearInterval(interval);
   }, []);
@@ -67,7 +67,7 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
       attestation
     ).then((votesResp: any) => {
         if(Array.isArray(votesResp) && votesResp.length > 0) {
-          setVotingRound(votesResp);
+          setVotingRound(votesResp); // deprecated, just use polling instead
         }
     })
   }

@@ -326,16 +326,16 @@ export async function getLoggedInGroupMembersByGroupId(groupId: number) {
  * @param input
  */
 export async function castConsensusVoteForUser(input: ConsensusVotesDto) {
-  const hasAlreadyVoted = await db.select({
-    votedfor: consensusVotes.votedfor
+  const voteIdResp = await db.select({
+    voteid: consensusVotes.voteid
   }).from(consensusVotes)
     .where(and(eq(consensusVotes.sessionid, input.sessionid),
       eq(consensusVotes.groupid, input.groupid),
-      eq(consensusVotes.votedfor, input.votedfor),
       eq(consensusVotes.modifiedbyid, input.modifiedbyid),
       eq(consensusVotes.rankingvalue, input.rankingvalue)));
 
   const valuesToUpsert = {
+    voteid: voteIdResp.length > 0 ? voteIdResp[0].voteid : 0,
     votedfor: input.votedfor,
     sessionid: input.sessionid,
     groupid: input.groupid,
@@ -344,20 +344,24 @@ export async function castConsensusVoteForUser(input: ConsensusVotesDto) {
     created: new Date(),
     updated: new Date(),
   }
-  if (hasAlreadyVoted.
-    length > 0) {
-    return db.update(consensusVotes).set(valuesToUpsert)
+
+  if (voteIdResp.length > 0
+  && typeof voteIdResp[0].voteid === 'number') {
+    const updateQuery = db.update(consensusVotes).set(valuesToUpsert)
       .where(and(eq(consensusVotes.sessionid, input.sessionid),
         eq(consensusVotes.groupid, input.groupid),
-        eq(consensusVotes.votedfor, input.votedfor),
         eq(consensusVotes.rankingvalue, input.rankingvalue),
-        eq(consensusVotes.modifiedbyid, input.modifiedbyid)
-      ));
+        eq(consensusVotes.modifiedbyid, input.modifiedbyid),
+        eq(consensusVotes.voteid, voteIdResp[0].voteid
+      )));
+    return updateQuery;
   }
   return db.insert(consensusVotes).values(valuesToUpsert);
 }
 
 export async function getCurrentVotesForSessionByRanking(sessionid: number, groupid: number, rankingValue: number) {
+// TODO - add a way to check which vote belongs to current user?
+  // need a way to re-check the radio if the user has already voted
   return db.select({
     walletaddress: users.walletaddress,
     count: count(consensusVotes.votedfor),
