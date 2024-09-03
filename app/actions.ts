@@ -310,7 +310,7 @@ export async function setSingleVoteAction(
   }
   const votedForUserId = votedForResp[0].id;
   if (consensusSessionSetupModel.rankingScheme === 'numeric-descending') {
-    return await castConsensusVoteForUser({
+    await castConsensusVoteForUser({
       votedfor: votedForUserId,
       sessionid: consensusSessionId,
       groupid: consensusSessionSetupModel.groupNum,
@@ -320,6 +320,7 @@ export async function setSingleVoteAction(
       updated: new Date()
     });
   }
+  return getCurrentVotesForSessionByRanking(consensusSessionId, consensusSessionSetupModel.groupNum, ranking);
 }
 
 export async function getCurrentVotesForSessionByRankingAction(consensusSessionId: number, ranking: number) {
