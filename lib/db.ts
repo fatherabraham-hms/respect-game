@@ -335,7 +335,7 @@ export async function castConsensusVoteForUser(input: ConsensusVotesDto) {
       eq(consensusVotes.rankingvalue, input.rankingvalue)));
 
   const valuesToUpsert = {
-    voteid: voteIdResp.length > 0 ? voteIdResp[0].voteid : 0,
+    voteid: voteIdResp.length > 0 ? voteIdResp[0].voteid : undefined,
     votedfor: input.votedfor,
     sessionid: input.sessionid,
     groupid: input.groupid,
