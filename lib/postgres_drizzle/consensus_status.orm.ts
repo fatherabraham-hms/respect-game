@@ -5,7 +5,7 @@ import { smallint } from 'drizzle-orm/pg-core/columns/smallint';
 import { UsersPgTable } from '@/lib/postgres_drizzle/users.orm';
 
 export const ConsensusStatusPgTable = pgTable('sessionid', {
-  sessionid: integer('sessionid').references(() => ConsensusSessionsPgTable.sessionId),
+  sessionid: integer('sessionid').references(() => ConsensusSessionsPgTable.sessionid),
   rankingvalue: smallint('rankingvalue'),
   votedfor: integer('votedfor').references(() => UsersPgTable.id),
   consensustatus: smallint('sessionstatus'),
