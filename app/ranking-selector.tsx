@@ -85,14 +85,7 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
   const calculateRankingPercentageForCandidate = (user: User) => {
     const totalVotes = votingRound.reduce((acc, ranking) => acc + ranking.count, 0);
     const candidateSupportVotes = votingRound.find((ranking) => ranking.walletaddress === user.walletaddress)?.count || 0;
-    return ((candidateSupportVotes / totalVotes) || 0) * 100;
-  }
-
-  const calculateRankingFractionOfTwelve = (user: User) => {
-    const totalVotes = votingRound.reduce((acc, ranking) => acc + ranking.count, 0);
-    const candidateSupportVotes = votingRound.find((ranking) => ranking.walletaddress === user.walletaddress)?.count || 0;
-    const rounded = Math.round((candidateSupportVotes / totalVotes) * 12) || 0;
-    return rounded === 12 ? 'full' : `${rounded}/12`;
+    return Math.round(((candidateSupportVotes / totalVotes) || 0) * 100);
   }
 
   // <pre>Rankings: { JSON.stringify(rankings[currentRankNumber], null, 2) }</pre>
@@ -108,17 +101,16 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
         className="text-sm text-gray-500 dark:text-gray-400">{rankingConfig.rankingScheme === 'numeric-descending' ? '6 is highest' : '1 is highest'}</span>
       <br />
       <form className="border shadow-sm rounded-lg">
-        <pre>votingRound: {JSON.stringify(votingRound, null, 2)}</pre>
         {rankingConfig?.attendees?.map((user: User) => (
-          // <pre>{JSON.stringify(user, null, 2)}</pre>
           <div key={user.walletaddress} className={'flex items-center'}>
             <div className={'flex-grow-0 p-4'}>
               <input type={'radio'} name={'rankings'} value={'upvote'} onChange={() => setRanking(user.walletaddress, 'upvote')} />
             </div>
             <div className="w-full p-4 border-b dark:border-neutral-700">
               <div>
-                <label className="text-md font-medium text-gray-900 dark:text-gray-100">{user.name}</label>
-                <div>{user.walletaddress}</div>
+                <label className="text-lg font-medium text-gray-900 dark:text-gray-100">{user.name}</label>
+                <div className="text-sm font-medium text-gray-400 dark:text-gray-100"
+                >{user.walletaddress}</div>
               </div>
               <div
                 className={`ms-[calc(${calculateRankingPercentageForCandidate(user)}%-1.25rem)] ` + "inline-block mb-2 py-0.5 px-1.5 bg-blue-50 border border-blue-200 text-xs font-medium text-blue-600 rounded-lg dark:bg-blue-800/30 dark:border-blue-800 dark:text-blue-500"}>
@@ -127,7 +119,8 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
               <div className="flex w-full h-2 bg-gray-200 rounded-full overflow-hidden dark:bg-neutral-700"
                    role="progressbar">
                 <div
-                  className={`w-${calculateRankingFractionOfTwelve(user)} flex flex-col justify-center rounded-full overflow-hidden bg-blue-600 text-xs text-white text-center whitespace-nowrap transition duration-500 dark:bg-blue-500`}
+                  style={{ width: `${calculateRankingPercentageForCandidate(user)}%` }}
+                  className={`flex flex-col justify-center rounded-full overflow-hidden bg-blue-600 text-xs text-white text-center whitespace-nowrap transition duration-500 dark:bg-blue-500`}
                 ></div>
               </div>
             </div>
