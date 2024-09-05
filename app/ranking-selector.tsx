@@ -4,7 +4,8 @@ import { User } from '@/lib/dtos/user.dto';
 import { useEffect, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { ConsensusSessionSetupModel, Vote } from '@/lib/models/consensus-session-setup.model';
-import { getCurrentVotesForSessionByRankingAction, setSingleVoteAction } from '@/app/actions';
+import { getCurrentVotesForSessionByRankingAction, setConsensusStatusAction, setSingleVoteAction } from '@/app/actions';
+import * as CONSTANTS from '../data/constants/app_constants';
 
 // TODO: https://tailwindcomponents.com/component/radio-buttons
 
@@ -43,7 +44,7 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
     if (attendees === 0) {
       return false;
     }
-    return totalVotes >= attendees * .75;
+    return votingRound.some((candt) => candt.count > totalVotes * CONSTANTS.CONSENSUS_REACHED_PERCENTAGE);
   }
 
   function setRanking(walletAddress: string, attestation: 'upvote' | 'downvote') {
@@ -72,10 +73,33 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
     })
   }
 
+  function getWinner() {
+    const winner = votingRound.reduce((acc, ranking) => {
+      if (ranking.count > acc.count) {
+        return ranking;
+      }
+      return acc;
+    }, { count: 0, walletaddress: '' });
+    return rankingConfig.attendees.find((user: User) => user.walletaddress === winner.walletaddress);
+  }
+
   function nextLevel() {
+    const winner = getWinner()?.walletaddress || '';
+    if (!winner) {
+      return;
+    }
+    setConsensusStatusAction(
+      consensusSessionId,
+      currentRankNumber,
+      winner
+      ).then(() => {
+
+    });
     const nextRankNumber = rankingConfig.rankingScheme === 'numeric-descending' ? currentRankNumber - 1 : currentRankNumber + 1;
     setCurrentRankNumber(nextRankNumber);
-    // TODO: update the ranking for the winner on BE
+    const winnerIndex = rankingConfig.attendees.findIndex((user: User) => user.walletaddress === winner);
+    // remove winner from attendees
+    rankingConfig.attendees.splice(winnerIndex, 1);
     setSession({
       ...rankingConfig,
       votes: []

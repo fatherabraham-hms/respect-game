@@ -13,7 +13,11 @@ import {
   createConsensusGroup,
   getUserIdByWalletAddress,
   getLoggedInGroupMembersByGroupId,
-  getPendingGroupIdBySessionId, isMemberOfSession, castConsensusVoteForUser, getCurrentVotesForSessionByRanking
+  getPendingGroupIdBySessionId,
+  isMemberOfSession,
+  castConsensusVoteForUser,
+  getCurrentVotesForSessionByRanking,
+  setConsensusStatus
 } from '@/lib/db';
 import { VerifyLoginPayloadParams, createAuth } from 'thirdweb/auth';
 import { privateKeyAccount } from 'thirdweb/wallets';
@@ -125,7 +129,7 @@ export async function login(payload: VerifyLoginPayloadParams) {
  * Caution - this method must remain private so it does not expose the userid
  * @param address
  */
-async function createUserAccountIfNotExists(address: string): Promise<{id: number}[] | null> {
+async function createUserAccountIfNotExists(address: string): Promise<{ id: number }[] | null> {
   const useridResp = await getUserIdByWalletAddress(address);
   if (!useridResp || useridResp.length === 0) {
     await createUserProfile({
@@ -337,3 +341,32 @@ export async function getCurrentVotesForSessionByRankingAction(consensusSessionI
 }
 
 /*********** CONSENSUS STATUS ***********/
+
+export async function setConsensusStatusAction(
+  consensusSessionId: number,
+  rankingValue: number,
+  votedForWalletAddress: string
+) {
+  await checkJWT();
+  const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
+  if (!isMemberofSession) {
+    return null;
+  }
+  const beSession = await isAuthorized();
+  if (!beSession || !beSession.sessionid || !beSession.walletaddress || !beSession.userid) {
+    return null;
+  }
+  const votedForResp = await getUserIdByWalletAddress(votedForWalletAddress);
+  if (!votedForResp || votedForResp.length === 0 || typeof votedForResp[0].id !== 'number') {
+    throw new Error('No current user found');
+  }
+  const votedForUserId = votedForResp[0].id;
+  // TODO verify consensus is actually reached by querying database
+  return setConsensusStatus(
+    consensusSessionId,
+    rankingValue,
+    votedForUserId,
+    1,
+    beSession.userid
+  );
+}

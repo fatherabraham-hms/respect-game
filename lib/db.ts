@@ -18,6 +18,7 @@ import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
 import { ConsensusGroupsMembersPgTable } from '@/lib/postgres_drizzle/consensus_group_members.orm';
 import { ConsensusVotesPgTable } from '@/lib/postgres_drizzle/consensus_votes.orm';
 import { ConsensusVotesDto } from '@/lib/dtos/consensus-votes.dto';
+import { ConsensusStatusPgTable } from '@/lib/postgres_drizzle/consensus_status.orm';
 
 
 // ************** TABLES ****************** //
@@ -27,6 +28,7 @@ const consensusSessions = ConsensusSessionsPgTable;
 const consensusGroups = ConsensusGroupsPgTable;
 const consensusGroupMembers = ConsensusGroupsMembersPgTable;
 const consensusVotes = ConsensusVotesPgTable;
+const consensusStatusTable = ConsensusStatusPgTable;
 
 
 // -- create a table to store userid with groupid and sessionid
@@ -373,4 +375,31 @@ export async function getCurrentVotesForSessionByRanking(sessionid: number, grou
       eq(consensusVotes.rankingvalue, rankingValue),
       lt(consensusSessions.sessionstatus, 2)))
     .groupBy(users.walletaddress, consensusVotes.votedfor);
+}
+
+// ************** ConsensusStatusPgTable ****************** //
+
+export async function setConsensusStatus(sessionid: number, rankingValue: number, votedfor: number, consensusStatus: number, modifiedbyid: number) {
+  return db.insert(consensusStatusTable).values({
+    consensusid: undefined,
+    sessionid,
+    rankingvalue: rankingValue,
+    votedfor,
+    consensusstatus: consensusStatus,
+    modifiedbyid,
+    created: new Date(),
+    updated: new Date(),
+  }).onConflictDoUpdate({
+    target: consensusStatusTable.consensusid,
+    set: {
+      consensusid: undefined,
+      sessionid,
+      rankingvalue: rankingValue,
+      votedfor,
+      consensusstatus: consensusStatus,
+      modifiedbyid,
+      created: new Date(),
+      updated: new Date(),
+    },
+  });
 }
