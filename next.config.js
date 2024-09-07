@@ -3,13 +3,13 @@
 const ContentSecurityPolicy = `
   default-src 'self' *.thirdweb.com va.vercel-scripts.com;
   script-src 'self' 'unsafe-eval' 'unsafe-inline' *.thirdweb.com va.vercel-scripts.com;
-  child-src *.thirdweb.com *.walletconnect.com;
+  child-src 'self' *.thirdweb.com *.walletconnect.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' blob: data: localhost:3000;
-  media-src 'self' *.s3.amazonaws.com;
+  media-src 'self' *.s3.amazonaws.com *.thirdweb.com;
   connect-src *;
-  font-src 'self';
-  worker-src * blob: ws:;
+  font-src 'self' *.thirdweb.com;
+  worker-src * blob: ws: *.thirdweb.com;
 `
 
 const securityHeaders = [
