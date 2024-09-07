@@ -1,5 +1,8 @@
 {
   "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "debug": "NODE_OPTIONS='--inspect --enable-source-maps' next dev --turbo",
     "dev": "next dev --turbo",

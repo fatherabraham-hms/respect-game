@@ -1,27 +1,19 @@
-<div align="center"><strong>Next.js 14 Admin Dashboard Template</strong></div>
-<div align="center">Built with the Next.js App Router</div>
-<br />
-<div align="center">
-<a href="https://next-admin-dash.vercel.app/">Demo</a>
-<span> · </span>
-<a href="https://vercel.com/templates/next.js/admin-dashboard-tailwind-postgres-react-nextjs">Clone & Deploy</a>
-</div>
+## Next.js 14 Consensus Voting App
+#### Built by [Father Abraham](https://github.com/fatherabraham-hms) and [Optimism Fractal](https://optimismfractal.com/)
+#### Come join us at [Optimism Fractal](https://optimismfractal.com/)!! where we use this repo for <a href="https://respect-game.vercel.app/">Fractalgram</a>
 
 ## Overview
-
-This is a starter template using the following stack:
-
+Stack:
+- Node.js - [Node.js 20.9.0+](https://nodejs.org/)
 - Framework - [Next.js 14](https://nextjs.org/)
 - Language - [TypeScript](https://www.typescriptlang.org)
-- Auth - [NextAuth.js](https://next-auth.js.org)
+- Thirdweb - [Connect](https://thirdweb.com/connect)
 - Database - [Postgres](https://vercel.com/postgres)
+- ORM - [Drizzle](https://orm.drizzle.team/)
 - Deployment - [Vercel](https://vercel.com/docs/concepts/next.js/overview)
 - Styling - [Tailwind CSS](https://tailwindcss.com)
-- Components - [Shadcn UI](https://ui.shadcn.com/)
 - Analytics - [Vercel Analytics](https://vercel.com/analytics)
 - Formatting - [Prettier](https://prettier.io)
-
-This template uses the new Next.js App Router. This includes support for enhanced layouts, colocation of components, tests, and styles, component-level data fetching, and more.
 
 ## Getting Started
 
