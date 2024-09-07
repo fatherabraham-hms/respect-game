@@ -1,7 +1,7 @@
 'use server';
 
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
 import { eq, ne, lt, and, sql, gt, count } from 'drizzle-orm';
 import { VercelPgDatabase } from 'drizzle-orm/vercel-postgres';
 import {
@@ -18,7 +18,8 @@ import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
 import { ConsensusGroupsMembersPgTable } from '@/lib/postgres_drizzle/consensus_group_members.orm';
 import { ConsensusVotesPgTable } from '@/lib/postgres_drizzle/consensus_votes.orm';
 import { ConsensusVotesDto } from '@/lib/dtos/consensus-votes.dto';
-
+import ws from 'ws';
+neonConfig.webSocketConstructor = ws;
 
 // ************** TABLES ****************** //
 const users = UsersPgTable;
@@ -48,13 +49,10 @@ let db: | VercelPgDatabase<Record<string, never>>
 | PostgresJsDatabase<Record<string, never>>;
 
 if (process.env.NODE_ENV === 'production') {
-  db = drizzle(
-    neon(process.env.POSTGRES_URL!, {
-      fetchOptions: {
-        cache: 'no-store'
-      },
-    })
-  );
+  const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
+  pool.on('error', (err) => console.error(err));
+
+  db = drizzle(pool);
 } else {
   const migrationClient = postgres(process.env.POSTGRES_URL as string);
   db = LocalDrizzle(migrationClient, {
@@ -347,14 +345,13 @@ export async function castConsensusVoteForUser(input: ConsensusVotesDto) {
 
   if (voteIdResp.length > 0
   && typeof voteIdResp[0].voteid === 'number') {
-    const updateQuery = db.update(consensusVotes).set(valuesToUpsert)
+    return db.update(consensusVotes).set(valuesToUpsert)
       .where(and(eq(consensusVotes.sessionid, input.sessionid),
         eq(consensusVotes.groupid, input.groupid),
         eq(consensusVotes.rankingvalue, input.rankingvalue),
         eq(consensusVotes.modifiedbyid, input.modifiedbyid),
         eq(consensusVotes.voteid, voteIdResp[0].voteid
       )));
-    return updateQuery;
   }
   return db.insert(consensusVotes).values(valuesToUpsert);
 }
