@@ -16,7 +16,7 @@ import {
   getPendingGroupIdBySessionId, isMemberOfSession, castConsensusVoteForUser, getCurrentVotesForSessionByRanking
 } from '@/lib/db';
 import { VerifyLoginPayloadParams, createAuth } from 'thirdweb/auth';
-import { privateKeyAccount } from 'thirdweb/wallets';
+import { privateKeyAccount, getWalletBalance } from 'thirdweb/wallets';
 import { client } from '@/lib/client';
 import { cookies, headers } from 'next/headers';
 import { User } from '@/lib/dtos/user.dto';
@@ -201,6 +201,11 @@ export async function deleteUser(walletAddr: string) {
   // revalidatePath('/');
 }
 
+// TODO - set up hats protocol
+// https://portal.thirdweb.com/references/typescript/v5/useWalletBalance
+// https://app.hatsprotocol.xyz/trees/10/175?hatId=175.1.1.2
+// check if the balance on the hats contract 0x3bc1A0Ad72417f2d411118085256fC53CBdDd137
+// for the fractalgram cert 0x000000af00010001000200000000000000000000000000000000000000000000 is greater than 0
 export async function isLoggedInUserAdmin(): Promise<boolean> {
   const admins = process.env.RESPECT_GAME_ADMINS?.split(',') || [];
   const session = await isAuthorized();
