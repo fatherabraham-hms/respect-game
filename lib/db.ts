@@ -1,13 +1,13 @@
 'use server';
 
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
 import { eq, ne, lt, and, sql, gt, count } from 'drizzle-orm';
 import { VercelPgDatabase } from 'drizzle-orm/vercel-postgres';
 import {
   drizzle as LocalDrizzle,
-  type PostgresJsDatabase,
-} from "drizzle-orm/postgres-js";
+  type PostgresJsDatabase
+} from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { UsersPgTable } from '@/lib/postgres_drizzle/users.orm';
 import { ConsensusGroupsPgTable } from '@/lib/postgres_drizzle/consensus_groups.orm';
@@ -18,8 +18,7 @@ import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
 import { ConsensusGroupsMembersPgTable } from '@/lib/postgres_drizzle/consensus_group_members.orm';
 import { ConsensusVotesPgTable } from '@/lib/postgres_drizzle/consensus_votes.orm';
 import { ConsensusVotesDto } from '@/lib/dtos/consensus-votes.dto';
-import ws from 'ws';
-neonConfig.webSocketConstructor = ws;
+
 
 // ************** TABLES ****************** //
 const users = UsersPgTable;
@@ -43,16 +42,18 @@ const consensusVotes = ConsensusVotesPgTable;
 // CREATE TABLE consensus_status (sessionid INT REFERENCES consensus_sessions (sessionid), rankingValue INT, votedfor INT REFERENCES users (id), consensusStatus SMALLINT, modifiedbyid integer REFERENCES users (id), created TIMESTAMP, updated TIMESTAMP);
 
 
-
 // https://www.thisdot.co/blog/configure-your-project-with-drizzle-for-local-and-deployed-databases
 let db: | VercelPgDatabase<Record<string, never>>
-| PostgresJsDatabase<Record<string, never>>;
+  | PostgresJsDatabase<Record<string, never>>;
 
 if (process.env.NODE_ENV === 'production') {
-  const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
-  pool.on('error', (err) => console.error(err));
-
-  db = drizzle(pool);
+  db = drizzle(
+    neon(process.env.POSTGRES_URL!, {
+      fetchOptions: {
+        cache: 'no-store'
+      }
+    })
+  );
 } else {
   const migrationClient = postgres(process.env.POSTGRES_URL as string);
   db = LocalDrizzle(migrationClient, {
@@ -62,6 +63,7 @@ if (process.env.NODE_ENV === 'production') {
 
 // ************** UserBeSessionPgTable ****************** //
 export type SelectUserBeSession = typeof userBeSessions.$inferSelect;
+
 export async function getBeUserSession(ipAddress: string, walletAddress: string, jwt: string) {
   return db.select().from(userBeSessions)
     .where(and(
@@ -82,7 +84,7 @@ export async function createBeUserSession(session: any) {
     ...session,
     expires: new Date(Date.now() + 1000 * 60 * 60 * 4),
     created: new Date(),
-    updated: new Date(),
+    updated: new Date()
   });
 }
 
@@ -93,6 +95,7 @@ export async function deleteBeUserSession(ipAddress: string, walletAddress: stri
 
 // ************** UsersPgTable ****************** //
 export type SelectUser = typeof users.$inferSelect;
+
 export async function getAllUsers(
   search: string,
   offset: number
@@ -136,7 +139,10 @@ export async function deleteUserById(id: number) {
 }
 
 export async function setUserLoginStatusById(walletAddress: string, loggedIn: boolean) {
-  await db.update(users).set({ loggedin: loggedIn, lastlogin: new Date() }).where(eq(users.walletaddress, walletAddress));
+  await db.update(users).set({
+    loggedin: loggedIn,
+    lastlogin: new Date()
+  }).where(eq(users.walletaddress, walletAddress));
 }
 
 export async function getUserProfileByWalletAddress(walletAddress: string) {
@@ -170,16 +176,16 @@ export async function getUserProfileByUsername(username: string) {
 }
 
 export async function createUserProfile(user: Partial<User>) {
-  if (!user || user.walletaddress === undefined || user.walletaddress?.length < 5 ){
+  if (!user || user.walletaddress === undefined || user.walletaddress?.length < 5) {
     return null;
   }
-  return db.insert(users).values({...user}).returning(
+  return db.insert(users).values({ ...user }).returning(
     { id: users.id }
   );
 }
 
 export async function updateUserProfile(user: Partial<User>) {
-  if (!user || user.walletaddress === undefined || user.walletaddress?.length < 5 ){
+  if (!user || user.walletaddress === undefined || user.walletaddress?.length < 5) {
     return null;
   }
 
@@ -188,7 +194,7 @@ export async function updateUserProfile(user: Partial<User>) {
     return { message: 'Username already exists, find an unused name' };
   }
 
-  return db.update(users).set({...user})
+  return db.update(users).set({ ...user })
     .where(eq(users.walletaddress, user.walletaddress))
     .returning({
       name: users.name,
@@ -225,7 +231,7 @@ export async function createConsensusSession(session: ConsensusSessionDto) {
     title: session.title,
     description: session.description,
     sessionstatus: session.sessionstatus,
-    modifiedbyid: session.modifiedbyid,
+    modifiedbyid: session.modifiedbyid
   }).returning({
     sessionid: consensusSessions.sessionid
   });
@@ -233,19 +239,19 @@ export async function createConsensusSession(session: ConsensusSessionDto) {
 
 export async function isMemberOfSession(sessionid: number, walletaddress: string) {
   // select all user records that are in the consensusGroupMembers table for the given groupId by joining the users table with the consensusGroupMembers table
-return db.select({
-  name: users.name,
-  username: users.username,
-  walletaddress: users.walletaddress
-}).from(users)
-  .innerJoin(consensusGroupMembers, eq(users.id, consensusGroupMembers.userid))
-  .innerJoin(consensusGroups, eq(consensusGroups.groupid, consensusGroupMembers.groupid))
-  .innerJoin(consensusSessions, eq(consensusSessions.sessionid, consensusGroups.sessionid))
-  .where(and(eq(users.walletaddress, walletaddress),
-    lt(consensusSessions.sessionstatus, 2),
-    eq(consensusGroups.sessionid, sessionid),
-    eq(users.loggedin, true)))
-  .limit(1);
+  return db.select({
+    name: users.name,
+    username: users.username,
+    walletaddress: users.walletaddress
+  }).from(users)
+    .innerJoin(consensusGroupMembers, eq(users.id, consensusGroupMembers.userid))
+    .innerJoin(consensusGroups, eq(consensusGroups.groupid, consensusGroupMembers.groupid))
+    .innerJoin(consensusSessions, eq(consensusSessions.sessionid, consensusGroups.sessionid))
+    .where(and(eq(users.walletaddress, walletaddress),
+      lt(consensusSessions.sessionstatus, 2),
+      eq(consensusGroups.sessionid, sessionid),
+      eq(users.loggedin, true)))
+    .limit(1);
 }
 
 // ************** ConsensusGroupsPgTable ****************** //
@@ -253,36 +259,68 @@ export type ConsensusGroupsDbDto = typeof consensusGroups.$inferSelect;
 
 export async function createConsensusGroup(consensusSessionId: number, groupAddresses: string[], userid: number) {
 // create a transaction that inserts a row into consensus_groups and then inserts a row into consensus_group_members for each group member
-  await db.transaction(async (trx) => {
-    const groupInsert = trx.insert(consensusGroups).values({
-      sessionid: consensusSessionId,
-      groupstatus: 0,
-      modifiedbyid: userid,
-      created: new Date(),
-      updated: new Date(),
-    }).returning({
-      groupid: consensusGroups.groupid
-    });
+//   await db.transaction(async (trx) => {
+//     const groupInsert = trx.insert(consensusGroups).values({
+//       sessionid: consensusSessionId,
+//       groupstatus: 0,
+//       modifiedbyid: userid,
+//       created: new Date(),
+//       updated: new Date()
+//     }).returning({
+//       groupid: consensusGroups.groupid
+//     });
+//
+//     const group = await groupInsert;
+//     console.log('group', group);
+//
+//     // loop through the groupAddresses, and insert a consensusGroupMembers record for each one
+//     for (const address of groupAddresses) {
+//       const userIdResp = await trx.select({
+//         id: users.id
+//       }).from(users).where(eq(users.walletaddress, address));
+//       if (userIdResp && userIdResp.length === 0) {
+//         throw new Error('No user found');
+//       }
+//       await trx.insert(consensusGroupMembers).values({
+//         groupid: group[0].groupid as number,
+//         userid: userIdResp[0].id,
+//         created: new Date(),
+//         updated: new Date()
+//       });
+//     }
+//   });
+//   return true;
 
-    const group = await groupInsert;
-    console.log('group', group);
-
-    // loop through the groupAddresses, and insert a consensusGroupMembers record for each one
-    for (const address of groupAddresses) {
-      const userIdResp = await trx.select({
-        id: users.id
-      }).from(users).where(eq(users.walletaddress, address));
-      if (userIdResp && userIdResp.length === 0) {
-        throw new Error('No user found');
-      }
-      await trx.insert(consensusGroupMembers).values({
-        groupid: group[0].groupid as number,
-        userid: userIdResp[0].id,
-        created: new Date(),
-        updated: new Date(),
-      });
-    }
+  const group = await db.insert(consensusGroups).values({
+    sessionid: consensusSessionId,
+    groupstatus: 0,
+    modifiedbyid: userid,
+    created: new Date(),
+    updated: new Date()
+  }).returning({
+    groupid: consensusGroups.groupid
   });
+
+  if (!group || group.length === 0) {
+    throw new Error('Group not created');
+  }
+
+  // loop through the groupAddresses, and insert a consensusGroupMembers record for each one
+  for (const address of groupAddresses) {
+    const userIdResp = await db.select({
+      id: users.id
+    }).from(users).where(eq(users.walletaddress, address));
+    if (userIdResp && userIdResp.length === 0) {
+      throw new Error('No user found');
+    }
+    await db.insert(consensusGroupMembers).values({
+      groupid: group[0].groupid as number,
+      userid: userIdResp[0].id,
+      created: new Date(),
+      updated: new Date()
+    });
+  }
+
   return true;
 }
 
@@ -340,8 +378,8 @@ export async function castConsensusVoteForUser(input: ConsensusVotesDto) {
     rankingvalue: input.rankingvalue,
     modifiedbyid: input.modifiedbyid,
     created: new Date(),
-    updated: new Date(),
-  }
+    updated: new Date()
+  };
 
   if (voteIdResp.length > 0
   && typeof voteIdResp[0].voteid === 'number') {
@@ -361,7 +399,7 @@ export async function getCurrentVotesForSessionByRanking(sessionid: number, grou
   // need a way to re-check the radio if the user has already voted
   return db.select({
     walletaddress: users.walletaddress,
-    count: count(consensusVotes.votedfor),
+    count: count(consensusVotes.votedfor)
   }).from(consensusVotes)
     .innerJoin(consensusSessions, eq(consensusSessions.sessionid, consensusVotes.sessionid))
     .innerJoin(users, eq(users.id, consensusVotes.votedfor))
