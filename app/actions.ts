@@ -261,16 +261,16 @@ export async function createConsensusSessionAndUserGroupAction(groupAddresses: s
 
 export async function getConsensusSetupAction(consensusSessionId: number): Promise<ConsensusSessionSetupModel | null> {
   if (consensusSessionId <= 0) {
-    return null;
+    throw new Error('Invalid session id');
   }
   await checkJWT();
   const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
   if (!isMemberofSession) {
-    return null;
+    throw new Error('Not a member of session');
   }
   const groupid = await getPendingGroupIdBySessionId(consensusSessionId);
   if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
-    return null;
+    throw new Error('Not a member of group');
   }
   const consensusSessionSetup: ConsensusSessionSetupModel = {
     groupNum: groupid[0].groupid,

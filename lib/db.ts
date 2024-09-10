@@ -2,7 +2,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq, ne, lt, and, sql, gt, count } from 'drizzle-orm';
+import { eq, ne, lt, and, gt, count } from 'drizzle-orm';
 import { VercelPgDatabase } from 'drizzle-orm/vercel-postgres';
 import {
   drizzle as LocalDrizzle,
@@ -337,19 +337,23 @@ export async function getPendingGroupIdBySessionId(consensusSessionId: number) {
 // ************** ConsensusGroupsMembersPgTable ****************** //
 export async function getLoggedInGroupMembersByGroupId(groupId: number) {
   // select all user records that are in the consensusGroupMembers table for the given groupId by joining the users table with the consensusGroupMembers table
-  const query = sql`
-    SELECT u.name, u.username, u.walletaddress 
-    FROM users u
-    INNER JOIN consensus_group_members cgm ON u.id = cgm.userid
-    INNER JOIN consensus_groups cg ON cg.groupid = cgm.groupid
-    INNER JOIN consensus_sessions cs ON cs.sessionid = cg.sessionid
-    WHERE u.loggedin = true 
-      AND cs.sessionstatus = 0 
-      AND cg.groupstatus = 0 
-      AND cgm.groupid = ${groupId}
-  `;
-  return db.execute(query);
-}
+  // rewrite query as drizzle-orm
+  return db.select({
+    name: users.name,
+    username: users.username,
+    walletaddress: users.walletaddress
+  }).from(users)
+    .innerJoin(consensusGroupMembers, eq(users.id, consensusGroupMembers.userid))
+    .innerJoin(consensusGroups, eq(consensusGroups.groupid, consensusGroupMembers.groupid))
+    .innerJoin(consensusSessions, eq(consensusSessions.sessionid, consensusGroups.sessionid))
+    .where(
+      and(
+      eq(consensusSessions.sessionstatus, 0),
+      eq(consensusGroups.groupstatus, 0),
+      eq(consensusGroups.groupid, groupId),
+      eq(users.loggedin, true)))
+    .limit(1);
+  }
 
 // ************** UsersPgTable ****************** //
 
