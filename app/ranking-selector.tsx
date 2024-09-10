@@ -23,6 +23,8 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
       );
       if(Array.isArray(currentVotesResp) && currentVotesResp.length > 0) {
         console.log('currentVotesResp: ', currentVotesResp);
+        console.log('currentRankNumber: ', currentRankNumber);
+        console.log('rankingConfig: ', rankingConfig);
         setVotingRound(currentVotesResp as Vote[]);
       }
     };
