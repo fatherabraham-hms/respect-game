@@ -332,11 +332,11 @@ export async function getCurrentVotesForSessionByRankingAction(consensusSessionI
   await checkJWT();
   const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
   if (!isMemberofSession) {
-    return null;
+    throw new Error('Not a member of session');
   }
   const groupid = await getPendingGroupIdBySessionId(consensusSessionId);
   if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
-    return null;
+    throw new Error('Not a member of group');
   }
   return getCurrentVotesForSessionByRanking(consensusSessionId, groupid[0].groupid, ranking);
 }
