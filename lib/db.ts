@@ -351,8 +351,7 @@ export async function getLoggedInGroupMembersByGroupId(groupId: number) {
       eq(consensusSessions.sessionstatus, 0),
       eq(consensusGroups.groupstatus, 0),
       eq(consensusGroups.groupid, groupId),
-      eq(users.loggedin, true)))
-    .limit(1);
+      eq(users.loggedin, true)));
   }
 
 // ************** UsersPgTable ****************** //
