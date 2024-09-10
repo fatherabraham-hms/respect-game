@@ -1,5 +1,5 @@
 import { ConnectButton } from 'thirdweb/react';
-import { base, optimism, optimismSepolia } from 'thirdweb/chains';
+import { ethereum, optimism, optimismSepolia } from 'thirdweb/chains';
 // https://portal.thirdweb.com/connect/auth/frameworks/next
 import { client } from '@/lib/client';
 import {
@@ -34,7 +34,7 @@ export default function Connect() {
   }
 
   return <ConnectButton
-    chains={[optimism, optimismSepolia]}
+    chains={[optimism, optimismSepolia, ethereum]}
     client={client}
     onDisconnect={() => {}}
     auth={{
@@ -63,7 +63,7 @@ export default function Connect() {
 
       },
       getLoginPayload: async ({ address }) =>
-        generatePayload({ address, chainId: base.id }),
+        generatePayload({ address, chainId: ethereum.id }),
       doLogout: async () => {
         console.log('logging out!');
         authContext.setAuthContext({

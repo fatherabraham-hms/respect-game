@@ -19,7 +19,8 @@ export default function IndexPage({ params }: { params: { sessionid: string } })
       const mySessionId = parseInt(params.sessionid);
       setConsensusSessionId(mySessionId);
       getConsensusSetupAction(mySessionId).then((consensusSessionSetup) => {
-          setCurrentSessionSetup(consensusSessionSetup);
+        console.log('consensusSessionSetup: ', consensusSessionSetup);
+        setCurrentSessionSetup(consensusSessionSetup);
       });
     }
   }, []);
