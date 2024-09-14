@@ -1,4 +1,4 @@
-export function Alert({ message, variant, callback }: { message: string, variant: 'success' | 'error', callback: () => void }) {
+export function Alert({ message, variant, callback }: { message: string, variant: 'success' | 'error', callback?: () => void }) {
   return (
     variant === 'success' &&
   <div className="space-y-5">
@@ -22,15 +22,19 @@ export function Alert({ message, variant, callback }: { message: string, variant
           <p className="text-sm text-gray-700 dark:text-neutral-400">
             {message}
           </p>
-        <div className="mt-4">
-          <div className="flex space-x-3">
-            <button type="button"
-                    className="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:pointer-events-none dark:text-blue-500 dark:hover:text-blue-400"
-                    onClick={callback}>
-              Start Session for Next Level
-            </button>
-          </div>
-        </div>
+          {
+            typeof callback === 'function' && (
+              <div className="mt-4">
+                <div className="flex space-x-3">
+                  <button type="button"
+                          className="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:pointer-events-none dark:text-blue-500 dark:hover:text-blue-400"
+                          onClick={callback}>
+                    Start Session for Next Level
+                  </button>
+                </div>
+              </div>
+            )
+          }
         </div>
       </div>
     </div>

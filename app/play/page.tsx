@@ -1,5 +1,4 @@
 'use client';
-import { ConsensusSession } from '@/app/play/consensus-session';
 
 export default function IndexPage() {
 
@@ -8,7 +7,9 @@ export default function IndexPage() {
       <div className="flex items-center mb-8">
         <h1 className="font-semibold text-lg md:text-2xl">Play the Respect Game</h1>
       </div>
-      <ConsensusSession />
+      <div className="flex items-center justify-center h-96">
+        <h1 className="font-semibold text-lg md:text-2xl">Ask the leader for the session link to join!</h1>
+      </div>
     </main>
   );
 }

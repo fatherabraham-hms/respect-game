@@ -13,7 +13,13 @@ import {
   createConsensusGroup,
   getUserIdByWalletAddress,
   getLoggedInGroupMembersByGroupId,
-  getPendingGroupIdBySessionId, isMemberOfSession, castConsensusVoteForUser, getCurrentVotesForSessionByRanking
+  getPendingGroupIdBySessionId,
+  isMemberOfSession,
+  castConsensusVoteForUser,
+  getCurrentVotesForSessionByRanking,
+  setSingleRankingConsensus,
+  getRemainingAttendeesForSession,
+  getExistingRankingValuesForSession, setSessionStatus, getConsensusSession, getConsensusWinnerRankingAndWalletAddress
 } from '@/lib/db';
 import { VerifyLoginPayloadParams, createAuth } from 'thirdweb/auth';
 import { privateKeyAccount, getWalletBalance } from 'thirdweb/wallets';
@@ -21,7 +27,8 @@ import { client } from '@/lib/client';
 import { cookies, headers } from 'next/headers';
 import { User } from '@/lib/dtos/user.dto';
 import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
-import { ConsensusSessionSetupModel } from '@/lib/models/consensus-session-setup.model';
+import { ConsensusSessionSetupModel, Vote } from '@/lib/models/consensus-session-setup.model';
+import { CONSENSUS_LIMIT } from '../data/constants/app_constants';
 
 let isDevEnv = false;
 if (process.env.NODE_ENV === 'development') {
@@ -279,7 +286,7 @@ export async function getConsensusSetupAction(consensusSessionId: number): Promi
     votes: []
   };
 
-  const groupMembers = await getLoggedInGroupMembersByGroupId(groupid[0].groupid);
+  const groupMembers = await getRemainingAttendeesForSession(consensusSessionId, groupid[0].groupid);
   if (groupMembers && groupMembers.length > 0) {
     consensusSessionSetup.attendees = [...groupMembers as User[]];
   }
@@ -325,7 +332,7 @@ export async function setSingleVoteAction(
       updated: new Date()
     });
   }
-  return getCurrentVotesForSessionByRanking(consensusSessionId, consensusSessionSetupModel.groupNum, ranking);
+  return getCurrentVotesForSessionByRanking('walletaddress', consensusSessionId, consensusSessionSetupModel.groupNum, ranking) as Promise<Vote[]>;
 }
 
 export async function getCurrentVotesForSessionByRankingAction(consensusSessionId: number, ranking: number) {
@@ -338,7 +345,139 @@ export async function getCurrentVotesForSessionByRankingAction(consensusSessionI
   if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
     throw new Error('Not a member of group');
   }
-  return getCurrentVotesForSessionByRanking(consensusSessionId, groupid[0].groupid, ranking);
+  return getCurrentVotesForSessionByRanking('walletaddress', consensusSessionId, groupid[0].groupid, ranking) as Promise<Vote[]>;
 }
 
 /*********** CONSENSUS STATUS ***********/
+
+export async function setSingleRankingConsensusStatusAction(consensusSessionId: number, rankingValue: number) {
+  const beSession = await isAuthorized();
+  if (!beSession || !beSession.sessionid || !beSession.walletaddress || !beSession.userid) {
+    throw new Error('Not authorized');
+  }
+  const isAdmin = await isLoggedInUserAdmin();
+  const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
+  if (!isAdmin && !isMemberofSession) {
+    throw new Error('Not a member of session');
+  }
+  const groupid = await getPendingGroupIdBySessionId(consensusSessionId);
+  if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
+    throw new Error('Not a member of group');
+  }
+
+  const counts: { id: string, count: number }[] = await getCurrentVotesForSessionByRanking('userid', consensusSessionId, groupid[0].groupid, rankingValue);
+  if (!counts || counts.length === 0) {
+    throw new Error('No counts found');
+  }
+  const totalVotes = counts.reduce((acc, ranking) => acc + ranking.count, 0);
+  // get attendees for the session and groupid
+  const groupMembers = await getLoggedInGroupMembersByGroupId(groupid[0].groupid);
+  if (!groupMembers || groupMembers.length === 0) {
+    throw new Error('No group members found');
+  }
+  // get the userid of the user who has the most votes
+  const maxVotes = counts.reduce((acc, ranking) => acc > ranking.count ? acc : ranking.count, 0);
+  const maxVotedFor = counts.find((ranking) => ranking.count === maxVotes);
+  if (!maxVotedFor || !maxVotedFor.id) {
+    throw new Error('No max voted for found');
+  }
+  // check if consensus reached
+  if (maxVotedFor.count >= totalVotes * CONSENSUS_LIMIT) {
+    const currentConsensusStatus = await getConsensusSession(consensusSessionId);
+    if (!currentConsensusStatus || currentConsensusStatus.length === 0) {
+      throw new Error('No consensus session found');
+    }
+    if (currentConsensusStatus[0].sessionstatus === 2) {
+      throw new Error('Consensus already reached');
+    }
+    // set session status to in progress if not already
+    if (currentConsensusStatus[0].sessionstatus === 0) {
+      await setSessionStatus(consensusSessionId, 1);
+    }
+    await setSingleRankingConsensus(parseInt(maxVotedFor.id), consensusSessionId, groupid[0].groupid, rankingValue, beSession.userid);
+  } else {
+    throw new Error('Consensus not reached');
+  }
+}
+
+export async function getRemainingAttendeesForSessionAction(consensusSessionId: number) {
+  const beSession = await isAuthorized();
+  if (!beSession || !beSession.sessionid || !beSession.walletaddress || !beSession.userid) {
+    throw new Error('Not authorized');
+  }
+  const isAdmin = await isLoggedInUserAdmin();
+  const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
+  if (!isAdmin && !isMemberofSession) {
+    throw new Error('Not a member of session');
+  }
+  const groupid = await getPendingGroupIdBySessionId(consensusSessionId);
+  if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
+    throw new Error('Not a member of group');
+  }
+  return getRemainingAttendeesForSession(consensusSessionId, groupid[0].groupid);
+}
+
+export async function getRemainingRankingsForSessionAction(consensusSessionId: number) {
+  const beSession = await isAuthorized();
+  if (!beSession || !beSession.sessionid || !beSession.walletaddress || !beSession.userid) {
+    throw new Error('Not authorized');
+  }
+  const isAdmin = await isLoggedInUserAdmin();
+  const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
+  if (!isAdmin && !isMemberofSession) {
+    throw new Error('Not a member of session');
+  }
+  const groupid = await getPendingGroupIdBySessionId(consensusSessionId);
+  if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
+    throw new Error('Not a member of group');
+  }
+  const currentConsensusVotingStatus = await getConsensusSession(consensusSessionId);
+  if (!currentConsensusVotingStatus || currentConsensusVotingStatus.length === 0
+  || !currentConsensusVotingStatus[0]?.sessionstatus) {
+    throw new Error('No consensus session found');
+  }
+  // TODO make this work with other ranking schemes
+  const highestRanking = 6;
+  const existingRankingsResp = await getExistingRankingValuesForSession(consensusSessionId, currentConsensusVotingStatus[0].sessionstatus, groupid[0].groupid);
+  // return list of all rankings if none exist
+  if (!existingRankingsResp || existingRankingsResp.length === 0) {
+    return Array.from({ length: highestRanking }, (_, i) => i + 1).reverse();
+  // if we have rankings and session has not reached consensus
+  } else if (existingRankingsResp.length > 0 && currentConsensusVotingStatus[0].sessionstatus === 1) {
+    const existingRankings = existingRankingsResp.map((ranking) => ranking.rankingvalue);
+    const remainingRankings = Array.from({ length: highestRanking }, (_, i) => i + 1).filter((ranking) => !existingRankings.includes(ranking)).reverse();
+    // voting session is considered finished when vote consensus is reached
+    // consensus session status is finished when all rankings have been pushed onchain
+    if (remainingRankings.length === 0) {
+      await setSessionStatus(consensusSessionId, 2);
+    }
+    return remainingRankings;
+  } else if (existingRankingsResp.length > 0 && currentConsensusVotingStatus[0].sessionstatus === 2) {
+    return [];
+  }
+}
+
+export async function getConsensusSessionWinnersAction(consensusSessionId: number) {
+  const beSession = await isAuthorized();
+  if (!beSession || !beSession.sessionid || !beSession.walletaddress || !beSession.userid) {
+    throw new Error('Not authorized');
+  }
+  const isAdmin = await isLoggedInUserAdmin();
+  const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
+  if (!isAdmin && !isMemberofSession) {
+    throw new Error('Not a member of session');
+  }
+  const groupid = await getPendingGroupIdBySessionId(consensusSessionId);
+  if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
+    throw new Error('Not a member of group');
+  }
+  const currentConsensusStatus = await getConsensusSession(consensusSessionId);
+  if (!currentConsensusStatus || currentConsensusStatus.length === 0
+    || !currentConsensusStatus[0]?.sessionstatus) {
+    throw new Error('Consensus session found');
+  }
+  if (currentConsensusStatus[0].sessionstatus !== 2) {
+    throw new Error('Voting not finished');
+  }
+  return getConsensusWinnerRankingAndWalletAddress(consensusSessionId);
+}

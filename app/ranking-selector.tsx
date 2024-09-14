@@ -4,34 +4,71 @@ import { User } from '@/lib/dtos/user.dto';
 import { useEffect, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { ConsensusSessionSetupModel, Vote } from '@/lib/models/consensus-session-setup.model';
-import { getCurrentVotesForSessionByRankingAction, setSingleVoteAction } from '@/app/actions';
+import {
+  getCurrentVotesForSessionByRankingAction, getRemainingAttendeesForSessionAction, getRemainingRankingsForSessionAction,
+  isLoggedInUserAdmin,
+  setSingleRankingConsensusStatusAction,
+  setSingleVoteAction
+} from '@/app/actions';
+import { CONSENSUS_LIMIT } from '../data/constants/app_constants';
+import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 // TODO: https://tailwindcomponents.com/component/radio-buttons
 
 export function RankingSelector({ consensusSessionId, rankingConfig, setSession }: { consensusSessionId: number, rankingConfig:  ConsensusSessionSetupModel, setSession: (session: ConsensusSessionSetupModel) => void }) {
+  const router = useRouter();
   const [votingRound, setVotingRound] = useState<Vote[]>([]);
   const [currentRankNumber, setCurrentRankNumber] = useState(rankingConfig.rankingScheme === 'numeric-descending' ? 6 : 1);
-
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    setCurrentRankNumber(rankingConfig.rankingScheme === 'numeric-descending' ? 6 : 1);
+    isLoggedInUserAdmin().then((isAdmin) => {
+      setIsAdmin(isAdmin);
+    });
+    const fetchAvailableRankings = async (): Promise<number | null> => {
+      return getRemainingRankingsForSessionAction(consensusSessionId).then((remainingRankings: Array<number> | undefined) => {
+        if (rankingConfig.rankingScheme === 'numeric-descending' && remainingRankings) {
+          if (remainingRankings.length > 0) {
+            setCurrentRankNumber(remainingRankings[0]);
+            return remainingRankings[0] as number;
+          }
+          if (remainingRankings.length === 0) {
+            setCurrentRankNumber(0);
+            return 0;
+          }
+          return null;
+        }
+        return null;
+      });
+    }
     // fetch the current voting round with short polling
-    const fetchVotingRound = async () => {
+    const fetchVotingRound = async (ranking: number | null) => {
+      if (ranking === null || ranking === 0) {
+        return;
+      }
       const currentVotesResp = await getCurrentVotesForSessionByRankingAction(
         consensusSessionId,
-        currentRankNumber
+        ranking
       );
       if(Array.isArray(currentVotesResp) && currentVotesResp.length > 0) {
         setVotingRound(currentVotesResp as Vote[]);
       }
     };
-    fetchVotingRound();
+    //chain the two fetches passing the ranking returned by the first fetch
+    const fetchCurrentVotingInfo = () => fetchAvailableRankings().then((ranking) => {
+      return fetchVotingRound(ranking);
+    });
+    fetchCurrentVotingInfo();
 
-    const interval = setInterval(fetchVotingRound, 5000);
+    const interval = setInterval(fetchCurrentVotingInfo, 5000);
 
     return () => clearInterval(interval);
   }, []);
 
+  if (currentRankNumber === 0) {
+    router.push(`/play/${consensusSessionId}/final`);
+  }
 
   // STATE
   function checkConsensusReached() {
@@ -43,7 +80,7 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
     if (attendees === 0) {
       return false;
     }
-    return totalVotes >= attendees * .75;
+    return totalVotes >= attendees * CONSENSUS_LIMIT;
   }
 
   function setRanking(walletAddress: string, attestation: 'upvote' | 'downvote') {
@@ -65,21 +102,28 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
       currentRankNumber,
       user.walletaddress,
       attestation
-    ).then((votesResp: any) => {
-        if(Array.isArray(votesResp) && votesResp.length > 0) {
-          setVotingRound(votesResp); // deprecated, just use polling instead
-        }
-    })
+    ).then(() => {}).catch(() => toast.error('Oops! An error occured, please try again!'));
   }
 
   function nextLevel() {
     const nextRankNumber = rankingConfig.rankingScheme === 'numeric-descending' ? currentRankNumber - 1 : currentRankNumber + 1;
     setCurrentRankNumber(nextRankNumber);
-    // TODO: update the ranking for the winner on BE
-    setSession({
-      ...rankingConfig,
-      votes: []
-    });
+    setSingleRankingConsensusStatusAction(consensusSessionId, currentRankNumber).then(
+      () => {
+        toast.success('Consensus Saved!');
+        getRemainingAttendeesForSessionAction(consensusSessionId).then((remainingAttendees: Array<any>) => {
+          if (remainingAttendees.length === 0) {
+            toast.success('You have successfully reached consensus on this topic!');
+          } else {
+            rankingConfig.attendees = remainingAttendees;
+            setSession({
+              ...rankingConfig,
+              votes: []
+            });
+          }
+        });
+      }
+    ).catch(() => toast.error('Oops! An error occured, please try again!'));
   }
 
   const calculateRankingPercentageForCandidate = (user: User) => {
@@ -92,9 +136,11 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
 
   return (
     <>
-      {checkConsensusReached() &&
+      {checkConsensusReached() && isAdmin &&
         <Alert message={'You have successfully reached consensus on this topic!'} variant={'success'}
                callback={nextLevel} />}
+      {checkConsensusReached() && !isAdmin &&
+        <Alert message={'You have successfully reached consensus on this topic!'} variant={'success'} />}
       <br />
       <h1 className="text-xl text-fuchsia-900">Now Gathering Consensus for Level: {currentRankNumber}</h1>
       <span
