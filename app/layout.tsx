@@ -1,7 +1,7 @@
 'use client';
 
 import { ThirdwebProvider, useActiveWallet, useActiveWalletConnectionStatus, useDisconnect } from 'thirdweb/react';
-import './globals.css';
+import './globals.scss';
 import Link from 'next/link';
 import { Analytics } from '@vercel/analytics/react';
 import { Logo } from '@/components/icons';
