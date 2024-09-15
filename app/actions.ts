@@ -12,14 +12,14 @@ import {
   createBeUserSession,
   createConsensusGroup,
   getUserIdByWalletAddress,
-  getLoggedInGroupMembersByGroupId,
-  getPendingGroupIdBySessionId,
+  getActiveGroupMembersByGroupId,
+  getActiveGroupIdBySessionId,
   isMemberOfSession,
-  castConsensusVoteForUser,
+  castSingleVoteForUser,
   getCurrentVotesForSessionByRanking,
   setSingleRankingConsensus,
-  getRemainingAttendeesForSession,
-  getExistingRankingValuesForSession, setSessionStatus, getConsensusSession, getConsensusWinnerRankingAndWalletAddress
+  getRemainingVoteCandidatesForSession,
+  getRankingsWithConsensusForSession, setSessionStatus, getConsensusSession, getConsensusWinnerRankingAndWalletAddress
 } from '@/lib/db';
 import { VerifyLoginPayloadParams, createAuth } from 'thirdweb/auth';
 import { privateKeyAccount } from 'thirdweb/wallets';
@@ -270,7 +270,7 @@ export async function getConsensusSetupAction(consensusSessionId: number): Promi
   if (!isMemberofSession) {
     throw new Error('Not a member of session');
   }
-  const groupid = await getPendingGroupIdBySessionId(consensusSessionId);
+  const groupid = await getActiveGroupIdBySessionId(consensusSessionId);
   if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
     throw new Error('Not a member of group');
   }
@@ -281,7 +281,7 @@ export async function getConsensusSetupAction(consensusSessionId: number): Promi
     votes: []
   };
 
-  const groupMembers = await getRemainingAttendeesForSession(consensusSessionId, groupid[0].groupid);
+  const groupMembers = await getRemainingVoteCandidatesForSession(consensusSessionId, groupid[0].groupid);
   if (groupMembers && groupMembers.length > 0) {
     consensusSessionSetup.attendees = [...groupMembers as User[]];
   }
@@ -316,7 +316,7 @@ export async function setSingleVoteAction(
   }
   const votedForUserId = votedForResp[0].id;
   if (consensusSessionSetupModel.rankingScheme === 'numeric-descending') {
-    await castConsensusVoteForUser({
+    await castSingleVoteForUser({
       votedfor: votedForUserId,
       sessionid: consensusSessionId,
       groupid: consensusSessionSetupModel.groupNum,
@@ -335,7 +335,7 @@ export async function getCurrentVotesForSessionByRankingAction(consensusSessionI
   if (!isMemberofSession) {
     throw new Error('Not a member of session');
   }
-  const groupid = await getPendingGroupIdBySessionId(consensusSessionId);
+  const groupid = await getActiveGroupIdBySessionId(consensusSessionId);
   if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
     throw new Error('Not a member of group');
   }
@@ -354,7 +354,7 @@ export async function setSingleRankingConsensusStatusAction(consensusSessionId: 
   if (!isAdmin && !isMemberofSession) {
     throw new Error('Not a member of session');
   }
-  const groupid = await getPendingGroupIdBySessionId(consensusSessionId);
+  const groupid = await getActiveGroupIdBySessionId(consensusSessionId);
   if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
     throw new Error('Not a member of group');
   }
@@ -365,18 +365,18 @@ export async function setSingleRankingConsensusStatusAction(consensusSessionId: 
   }
   const totalVotes = counts.reduce((acc, ranking) => acc + ranking.count, 0);
   // get attendees for the session and groupid
-  const groupMembers = await getLoggedInGroupMembersByGroupId(groupid[0].groupid);
+  const groupMembers = await getActiveGroupMembersByGroupId(groupid[0].groupid);
   if (!groupMembers || groupMembers.length === 0) {
     throw new Error('No group members found');
   }
   // get the userid of the user who has the most votes
-  const maxVotes = counts.reduce((acc, ranking) => acc > ranking.count ? acc : ranking.count, 0);
-  const maxVotedFor = counts.find((ranking) => ranking.count === maxVotes);
-  if (!maxVotedFor || !maxVotedFor.id) {
+  const highestScore = counts.reduce((acc, ranking) => acc > ranking.count ? acc : ranking.count, 0);
+  const userHavingHighestScore = counts.find((ranking) => ranking.count === highestScore);
+  if (!userHavingHighestScore || !userHavingHighestScore.id) {
     throw new Error('No max voted for found');
   }
   // check if consensus reached
-  if (maxVotedFor.count >= totalVotes * CONSENSUS_LIMIT) {
+  if (userHavingHighestScore.count >= groupMembers.length * CONSENSUS_LIMIT) {
     const currentConsensusStatus = await getConsensusSession(consensusSessionId);
     if (!currentConsensusStatus || currentConsensusStatus.length === 0) {
       throw new Error('No consensus session found');
@@ -388,7 +388,12 @@ export async function setSingleRankingConsensusStatusAction(consensusSessionId: 
     if (currentConsensusStatus[0].sessionstatus === 0) {
       await setSessionStatus(consensusSessionId, 1);
     }
-    await setSingleRankingConsensus(parseInt(maxVotedFor.id), consensusSessionId, groupid[0].groupid, rankingValue, beSession.userid);
+    await setSingleRankingConsensus(
+      consensusSessionId,
+      rankingValue,
+      parseInt(userHavingHighestScore.id),
+      1,
+      beSession.userid);
   } else {
     throw new Error('Consensus not reached');
   }
@@ -404,11 +409,11 @@ export async function getRemainingAttendeesForSessionAction(consensusSessionId: 
   if (!isAdmin && !isMemberofSession) {
     throw new Error('Not a member of session');
   }
-  const groupid = await getPendingGroupIdBySessionId(consensusSessionId);
+  const groupid = await getActiveGroupIdBySessionId(consensusSessionId);
   if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
     throw new Error('Not a member of group');
   }
-  return getRemainingAttendeesForSession(consensusSessionId, groupid[0].groupid);
+  return getRemainingVoteCandidatesForSession(consensusSessionId, groupid[0].groupid);
 }
 
 export async function getRemainingRankingsForSessionAction(consensusSessionId: number) {
@@ -421,32 +426,47 @@ export async function getRemainingRankingsForSessionAction(consensusSessionId: n
   if (!isAdmin && !isMemberofSession) {
     throw new Error('Not a member of session');
   }
-  const groupid = await getPendingGroupIdBySessionId(consensusSessionId);
+  const groupid = await getActiveGroupIdBySessionId(consensusSessionId);
   if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
     throw new Error('Not a member of group');
   }
-  const currentConsensusVotingStatus = await getConsensusSession(consensusSessionId);
-  if (!currentConsensusVotingStatus || currentConsensusVotingStatus.length === 0
-  || typeof currentConsensusVotingStatus[0]?.sessionstatus !== 'number') {
+
+  const currentSessionResp = await getConsensusSession(consensusSessionId);
+  if (!currentSessionResp || currentSessionResp.length === 0
+  || typeof currentSessionResp[0]?.sessionstatus !== 'number') {
     throw new Error('No consensus session found');
   }
   // TODO make this work with other ranking schemes
-  const highestRanking = 6;
-  const existingRankingsResp = await getExistingRankingValuesForSession(consensusSessionId, currentConsensusVotingStatus[0].sessionstatus, groupid[0].groupid);
-  // return list of all rankings if none exist
-  if (!existingRankingsResp || existingRankingsResp.length === 0) {
+  const highestRanking = currentSessionResp[0]?.rankinglimit || 6;
+  const rankingsWithConsensusResp = await getRankingsWithConsensusForSession(consensusSessionId, currentSessionResp[0].sessionstatus, groupid[0].groupid);
+  // NO VOTES YET
+  // return list of all rankings, based on 'numeric-descending' if no rankings exist in db
+  if (!rankingsWithConsensusResp || rankingsWithConsensusResp.length === 0) {
     return Array.from({ length: highestRanking }, (_, i) => i + 1).reverse();
-  // if we have rankings and session has not reached consensus
-  } else if (existingRankingsResp.length > 0 && currentConsensusVotingStatus[0].sessionstatus === 1) {
-    const existingRankings = existingRankingsResp.map((ranking) => ranking.rankingvalue);
-    const remainingRankings = Array.from({ length: highestRanking }, (_, i) => i + 1).filter((ranking) => !existingRankings.includes(ranking)).reverse();
-    // voting session is considered finished when vote consensus is reached
-    // consensus session status is finished when all rankings have been pushed onchain
-    if (remainingRankings.length === 0) {
-      await setSessionStatus(consensusSessionId, 2);
+  // INCOMPLETE VOTES rankings and session has NOT finished
+  } else if (rankingsWithConsensusResp.length > 0
+    && currentSessionResp[0].sessionstatus !== 2
+    && typeof rankingsWithConsensusResp[0].rankingvalue === 'number') {
+    const consensusReachedForCurrentRanking = await _hasConsensusOnRanking(consensusSessionId, groupid[0].groupid, rankingsWithConsensusResp[0].rankingvalue);
+    const existingRankings = rankingsWithConsensusResp.map((ranking) => ranking.rankingvalue) as number[];
+
+    let remainingRankings: number[] = [];
+    // CONSENSUS NOT REACHED, include the current ranking in the list, but exclude those having consensus
+    if (!consensusReachedForCurrentRanking) {
+      remainingRankings = Array.from({ length: highestRanking }, (_, i) => i + 1).filter((ranking) => !existingRankings.includes(ranking)).reverse();
+    // CONSENSUS REACHED, exclude the current ranking from the list
+    } else {
+      remainingRankings = Array.from({ length: highestRanking }, (_, i) => i + 1).filter((ranking) => !existingRankings.includes(ranking)).reverse();
     }
+    // if there are no more rankings to vote on, set the session status to finished, etc..
+    await _handleSessionUpdates(consensusSessionId,
+      currentSessionResp[0].sessionstatus,
+      groupid[0].groupid,
+      remainingRankings,
+      beSession.userid);
     return remainingRankings;
-  } else if (existingRankingsResp.length > 0 && currentConsensusVotingStatus[0].sessionstatus === 2) {
+  // VOTING FINISHED, rankings will need to be verified then pushed onchain next
+  } else if (rankingsWithConsensusResp.length > 0 && currentSessionResp[0].sessionstatus === 2) {
     return [];
   }
 }
@@ -461,7 +481,7 @@ export async function getConsensusSessionWinnersAction(consensusSessionId: numbe
   if (!isAdmin && !isMemberofSession) {
     throw new Error('Not a member of session');
   }
-  const groupid = await getPendingGroupIdBySessionId(consensusSessionId);
+  const groupid = await getActiveGroupIdBySessionId(consensusSessionId);
   if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
     throw new Error('Not a member of group');
   }
@@ -474,4 +494,57 @@ export async function getConsensusSessionWinnersAction(consensusSessionId: numbe
     throw new Error('Voting not finished');
   }
   return getConsensusWinnerRankingAndWalletAddress(consensusSessionId);
+}
+
+async function _hasConsensusOnRanking(consensusSessionId: number, groupid: number, rankingValue: number): Promise<boolean> {
+  const counts: { id: string, count: number }[] = await getCurrentVotesForSessionByRanking('userid', consensusSessionId, groupid, rankingValue);
+  if (!counts || counts.length === 0) {
+    throw new Error('No counts found');
+  }
+  // get attendees for the session and groupid
+  const groupMembers = await getActiveGroupMembersByGroupId(groupid);
+  if (!groupMembers || groupMembers.length === 0) {
+    throw new Error('No group members found');
+  }
+  // get the userid of the user who has the most votes
+  const maxVotes = counts.reduce((acc, ranking) => acc > ranking.count ? acc : ranking.count, 0);
+  const mostVotedForCandidate = counts.find((ranking) => ranking.count === maxVotes);
+  if (!mostVotedForCandidate || !mostVotedForCandidate.id) {
+    throw new Error('No max voted for found');
+  }
+  // check if consensus reached
+  if (mostVotedForCandidate.count >= groupMembers.length * CONSENSUS_LIMIT) {
+    return true;
+  } else {
+    return false;
+  }
+  return false;
+}
+
+// SHOULD WE CLOSE THE SESSION?
+// voting session is considered finished when vote consensus is reached
+// consensus session status is finished when all rankings have been pushed onchain
+
+async function _handleSessionUpdates(consensusSessionId: number,
+                                     sessionStatus: number,
+                                     groupid: number,
+                                     remainingRankings: number[],
+                                     modifiedBy: number) {
+  // if there are no more rankings to vote on, set the session status to finished
+  // if there is only one attendee left, set the ranking and set the session status to finished
+  const remainingAttendees = await getRemainingAttendeesForSessionAction(consensusSessionId);
+  if (remainingRankings.length === 0 || !remainingAttendees || remainingAttendees.length < 2) {
+    // if only a single attendee is left, we don't need to vote, just set the ranking
+    if (remainingAttendees && remainingAttendees.length === 1
+      && sessionStatus === 1
+      && remainingAttendees[0].walletaddress) {
+      // convert the last attendee's wallet address into a userid
+      const lastAttendee = await getUserIdByWalletAddress(remainingAttendees[0].walletaddress);
+      if (!lastAttendee || lastAttendee.length === 0 || typeof lastAttendee[0].id !== 'number') {
+        throw new Error('No last attendee found');
+      }
+      await setSingleRankingConsensus(lastAttendee[0].id, consensusSessionId, groupid, remainingRankings[0], modifiedBy);
+    }
+    await setSessionStatus(consensusSessionId, 2);
+  }
 }
