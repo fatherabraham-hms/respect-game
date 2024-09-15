@@ -100,8 +100,7 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
     setSingleVoteAction(consensusSessionId,
       rankingConfig,
       currentRankNumber,
-      user.walletaddress,
-      attestation
+      user.walletaddress
     ).then(() => {}).catch(() => toast.error('Oops! An error occured, please try again!'));
   }
 
