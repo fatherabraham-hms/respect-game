@@ -22,7 +22,7 @@ import {
   getExistingRankingValuesForSession, setSessionStatus, getConsensusSession, getConsensusWinnerRankingAndWalletAddress
 } from '@/lib/db';
 import { VerifyLoginPayloadParams, createAuth } from 'thirdweb/auth';
-import { privateKeyAccount, getWalletBalance } from 'thirdweb/wallets';
+import { privateKeyAccount } from 'thirdweb/wallets';
 import { client } from '@/lib/client';
 import { cookies, headers } from 'next/headers';
 import { User } from '@/lib/dtos/user.dto';
@@ -202,12 +202,6 @@ export async function updateUserProfileAction(user: Partial<User>): Promise<Part
   return result as Partial<User> | { message: string };
 }
 
-export async function deleteUser(walletAddr: string) {
-  // Uncomment this to enable deletion
-  // await deleteUserById(userId);
-  // revalidatePath('/');
-}
-
 // TODO - set up hats protocol
 // https://portal.thirdweb.com/references/typescript/v5/useWalletBalance
 // https://app.hatsprotocol.xyz/trees/10/175?hatId=175.1.1.2
@@ -256,6 +250,7 @@ export async function createConsensusSessionAndUserGroupAction(groupAddresses: s
   }
   const userid = userIdResp[0].id;
   session.modifiedbyid = userid;
+  session.sessionstatus = 1;
   const consensusSessionResponse = await createConsensusSession(session);
   if (consensusSessionResponse
     && consensusSessionResponse.length > 0
@@ -302,8 +297,7 @@ export async function setSingleVoteAction(
   consensusSessionId: number,
   consensusSessionSetupModel: ConsensusSessionSetupModel,
   ranking: number,
-  walletAddress: string,
-  attestation: 'upvote' | 'downvote') {
+  walletAddress: string) {
   const beSession = await isAuthorized();
   if (!beSession || !beSession.sessionid || !beSession.walletaddress || !beSession.userid) {
     return null;
@@ -433,7 +427,7 @@ export async function getRemainingRankingsForSessionAction(consensusSessionId: n
   }
   const currentConsensusVotingStatus = await getConsensusSession(consensusSessionId);
   if (!currentConsensusVotingStatus || currentConsensusVotingStatus.length === 0
-  || !currentConsensusVotingStatus[0]?.sessionstatus) {
+  || typeof currentConsensusVotingStatus[0]?.sessionstatus !== 'number') {
     throw new Error('No consensus session found');
   }
   // TODO make this work with other ranking schemes

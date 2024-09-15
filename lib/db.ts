@@ -223,7 +223,9 @@ export async function getConsensusSession(sessionid: number) {
       title: consensusSessions.title,
       description: consensusSessions.description,
       sessionstatus: consensusSessions.sessionstatus
-    }).from(consensusSessions).where(and(eq(consensusSessions.sessionid, sessionid), ne(consensusSessions.sessionstatus, 3)));
+    }).from(consensusSessions).where(
+      and(eq(consensusSessions.sessionid, sessionid),
+        ne(consensusSessions.sessionstatus, 3)));
   }
   return null;
 }
@@ -339,7 +341,7 @@ export async function getPendingGroupIdBySessionId(consensusSessionId: number) {
   if (consensusSessionId > 0) {
     return db.select({
       groupid: consensusGroups.groupid
-    }).from(consensusGroups).where(and(eq(consensusGroups.sessionid, consensusSessionId), eq(consensusGroups.groupstatus, 0)));
+    }).from(consensusGroups).where(and(eq(consensusGroups.sessionid, consensusSessionId), eq(consensusGroups.groupstatus, 1)));
   }
   return null;
 }
@@ -440,11 +442,24 @@ export async function getCurrentVotesForSessionByRanking(
   return statement;
 }
 
-/** get remaining attendees who have not been saved to the consensus_votes table
- *
+/**
+ * getRemainingAttendeesForSession
+ * get remaining attendees who have not been saved to the consensus_votes table
+ * @param consensusSessionId
+ * @param groupid
  */
 export async function getRemainingAttendeesForSession(consensusSessionId: number, groupid: number) {
-   {
+  // Check if there are any records in consensus_votes for the given session and group
+  const votesExist = await db.select({
+    count: count(consensusVotes.votedfor)
+  }).from(consensusVotes)
+    .where(and(
+      eq(consensusVotes.sessionid, consensusSessionId),
+      eq(consensusVotes.groupid, groupid)
+    ));
+
+  if (votesExist[0].count > 0) {
+    // If votes exist, join with consensusVotes
     return db.selectDistinct({
       name: users.name,
       username: users.username,
@@ -457,16 +472,35 @@ export async function getRemainingAttendeesForSession(consensusSessionId: number
       .where(
         and(
           eq(consensusSessions.sessionid, consensusSessionId),
-          eq(consensusSessions.sessionstatus, 0),
-          eq(consensusGroups.groupstatus, 0),
+          eq(consensusSessions.sessionstatus, 1),
+          eq(consensusGroups.groupstatus, 1),
           eq(consensusGroups.groupid, groupid),
           eq(users.loggedin, true),
           ne(consensusVotes.votedfor, users.id))
+      );
+  } else {
+    // If no votes exist, skip the join with consensusVotes
+    return db.selectDistinct({
+      name: users.name,
+      username: users.username,
+      walletaddress: users.walletaddress
+    }).from(users)
+      .innerJoin(consensusGroupMembers, eq(users.id, consensusGroupMembers.userid))
+      .innerJoin(consensusGroups, eq(consensusGroups.groupid, consensusGroupMembers.groupid))
+      .innerJoin(consensusSessions, eq(consensusSessions.sessionid, consensusGroups.sessionid))
+      .where(
+        and(
+          eq(consensusSessions.sessionid, consensusSessionId),
+          eq(consensusSessions.sessionstatus, 1),
+          eq(consensusGroups.groupstatus, 1),
+          eq(consensusGroups.groupid, groupid),
+          eq(users.loggedin, true))
       );
   }
 }
 
 export async function getExistingRankingValuesForSession(consensusSessionId: number, consensusSessionStatus: number, groupid: number) {
+  console.log('getExistingRankingValuesForSession');
   return db.selectDistinct({
     rankingvalue: consensusVotes.rankingvalue
   }).from(consensusVotes)
