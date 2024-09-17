@@ -29,6 +29,7 @@ import { User } from '@/lib/dtos/user.dto';
 import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
 import { ConsensusSessionSetupModel, Vote } from '@/lib/models/consensus-session-setup.model';
 import { CONSENSUS_LIMIT } from '../data/constants/app_constants';
+import { redirect } from 'next/navigation';
 
 let isDevEnv = false;
 if (process.env.NODE_ENV === 'development') {
@@ -66,12 +67,18 @@ async function isAuthorized() {
   const jwt = cookies().get('jwt');
   const activeWalletAddress = cookies().get('activeWalletAddress');
   const ipaddress = (headers().get('x-forwarded-for') ?? '127.0.0.1').split(',')[0];
+  if (activeWalletAddress?.value && (!jwt?.value || !ipaddress)) {
+    await logout();
+    redirect('/');
+  }
   if (!ipaddress || !activeWalletAddress?.value || !jwt?.value) {
-    return null;
+    redirect('/');
   }
   const session = await getBeUserSession(ipaddress, activeWalletAddress.value, jwt?.value || '');
+  // if no session is returned, make sure they are logged out fully.
   if (!session || session.length === 0) {
-    return null;
+    await logout();
+    redirect('/');
   }
   return session[0];
 }
@@ -494,6 +501,23 @@ export async function getConsensusSessionWinnersAction(consensusSessionId: numbe
     throw new Error('Voting not finished');
   }
   return getConsensusWinnerRankingAndWalletAddress(consensusSessionId);
+}
+
+export async function hasConsensusOnRankingAction(consensusSessionId: number, rankingValue: number) {
+  const beSession = await isAuthorized();
+  if (!beSession || !beSession.sessionid || !beSession.walletaddress || !beSession.userid) {
+    throw new Error('Not authorized');
+  }
+  const isAdmin = await isLoggedInUserAdmin();
+  const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
+  if (!isAdmin && !isMemberofSession) {
+    throw new Error('Not a member of session');
+  }
+  const groupid = await getActiveGroupIdBySessionId(consensusSessionId);
+  if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
+    throw new Error('Not a member of group');
+  }
+  return _hasConsensusOnRanking(consensusSessionId, groupid[0].groupid, rankingValue);
 }
 
 async function _hasConsensusOnRanking(consensusSessionId: number, groupid: number, rankingValue: number): Promise<boolean> {

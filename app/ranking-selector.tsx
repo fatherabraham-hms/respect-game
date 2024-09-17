@@ -5,7 +5,10 @@ import { useEffect, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { ConsensusSessionSetupModel, Vote } from '@/lib/models/consensus-session-setup.model';
 import {
-  getCurrentVotesForSessionByRankingAction, getRemainingAttendeesForSessionAction, getRemainingRankingsForSessionAction,
+  getCurrentVotesForSessionByRankingAction,
+  getRemainingAttendeesForSessionAction,
+  getRemainingRankingsForSessionAction,
+  hasConsensusOnRankingAction,
   isLoggedInUserAdmin,
   setSingleRankingConsensusStatusAction,
   setSingleVoteAction
@@ -21,6 +24,7 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
   const [votingRound, setVotingRound] = useState<Vote[]>([]);
   const [currentRankNumber, setCurrentRankNumber] = useState(rankingConfig.rankingScheme === 'numeric-descending' ? 6 : 1);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [consensusReached, setConsensusReached] = useState(false);
 
   useEffect(() => {
     isLoggedInUserAdmin().then((isAdmin) => {
@@ -55,32 +59,27 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
         setVotingRound(currentVotesResp as Vote[]);
       }
     };
-    //chain the two fetches passing the ranking returned by the first fetch
-    const fetchCurrentVotingInfo = () => fetchAvailableRankings().then((ranking) => {
-      return fetchVotingRound(ranking);
-    });
+    const fetchConsensusStatus = async () => {
+      hasConsensusOnRankingAction(consensusSessionId, currentRankNumber).then((hasConsensus) => {
+        setConsensusReached(hasConsensus);
+      });
+    }
+
+    // chain promises fetchAvailableRankings, fetchConsensusStatus, then call fetchVotingRound with highest ranking
+    const fetchCurrentVotingInfo = async () => {
+      return Promise.all([fetchAvailableRankings(), fetchConsensusStatus()]).then(([ranking]) => {
+        return fetchVotingRound(ranking);
+      });
+    }
     fetchCurrentVotingInfo();
 
-    const interval = setInterval(fetchCurrentVotingInfo, 5000);
+    const interval = setInterval(fetchCurrentVotingInfo, 2000);
 
     return () => clearInterval(interval);
   }, []);
 
   if (currentRankNumber === 0) {
     router.push(`/play/${consensusSessionId}/final`);
-  }
-
-  // STATE
-  function checkConsensusReached() {
-    if (Object.keys(votingRound)?.length === 0) {
-      return false;
-    }
-    const totalVotes = votingRound.reduce((acc, ranking) => acc + ranking.count, 0);
-    const attendees = rankingConfig.attendees.length;
-    if (attendees === 0) {
-      return false;
-    }
-    return totalVotes >= attendees * CONSENSUS_LIMIT;
   }
 
   function setRanking(walletAddress: string, attestation: 'upvote' | 'downvote') {
@@ -135,10 +134,10 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
 
   return (
     <>
-      {checkConsensusReached() && isAdmin &&
+      {consensusReached && isAdmin &&
         <Alert message={'You have successfully reached consensus on this topic!'} variant={'success'}
                callback={nextLevel} />}
-      {checkConsensusReached() && !isAdmin &&
+      {consensusReached && !isAdmin &&
         <Alert message={'You have successfully reached consensus on this topic!'} variant={'success'} />}
       <br />
       <h1 className="text-xl text-fuchsia-900">Now Gathering Consensus for Level: {currentRankNumber}</h1>

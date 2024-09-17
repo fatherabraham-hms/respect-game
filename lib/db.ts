@@ -90,8 +90,10 @@ export async function createBeUserSession(session: any) {
   });
 }
 
-export async function deleteBeUserSession(ipAddress: string, walletAddress: string, jwt: string) {
-  return db.delete(userBeSessions).where(and(eq(userBeSessions.ipaddress, ipAddress), eq(userBeSessions.walletaddress, walletAddress) && eq(userBeSessions.jwt, jwt)));
+export async function setBeSessionAsExpired(walletAddress: string) {
+  return db.update(userBeSessions).set({
+    expires: new Date()
+  }).where(eq(userBeSessions.walletaddress, walletAddress));
 }
 
 
@@ -141,10 +143,18 @@ export async function deleteUserById(id: number) {
 }
 
 export async function setUserLoginStatusById(walletAddress: string, loggedIn: boolean) {
-  await db.update(users).set({
+  let set: any = {
     loggedin: loggedIn,
     lastlogin: new Date()
-  }).where(eq(users.walletaddress, walletAddress));
+  };
+  if (!loggedIn) {
+    set = {
+      loggedin: loggedIn
+    };
+    // also log out BE session if they are logging out
+    await setBeSessionAsExpired(walletAddress);
+  }
+  return db.update(users).set(set).where(eq(users.walletaddress, walletAddress));
 }
 
 export async function getUserProfileByWalletAddress(walletAddress: string) {
@@ -445,6 +455,7 @@ export async function getCurrentVotesForSessionByRanking(
   } else {
     statement.groupBy(users.walletaddress, consensusVotes.votedfor);
   }
+  console.log(statement);
   return statement;
 }
 
