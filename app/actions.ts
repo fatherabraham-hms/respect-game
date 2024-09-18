@@ -523,18 +523,18 @@ export async function hasConsensusOnRankingAction(consensusSessionId: number, ra
 async function _hasConsensusOnRanking(consensusSessionId: number, groupid: number, rankingValue: number): Promise<boolean> {
   const counts: { id: string, count: number }[] = await getCurrentVotesForSessionByRanking('userid', consensusSessionId, groupid, rankingValue);
   if (!counts || counts.length === 0) {
-    throw new Error('No counts found');
+    return false;
   }
   // get attendees for the session and groupid
   const groupMembers = await getActiveGroupMembersByGroupId(groupid);
   if (!groupMembers || groupMembers.length === 0) {
-    throw new Error('No group members found');
+    return false;
   }
   // get the userid of the user who has the most votes
   const maxVotes = counts.reduce((acc, ranking) => acc > ranking.count ? acc : ranking.count, 0);
   const mostVotedForCandidate = counts.find((ranking) => ranking.count === maxVotes);
   if (!mostVotedForCandidate || !mostVotedForCandidate.id) {
-    throw new Error('No max voted for found');
+    return false;
   }
   // check if consensus reached
   if (mostVotedForCandidate.count >= groupMembers.length * CONSENSUS_LIMIT) {
