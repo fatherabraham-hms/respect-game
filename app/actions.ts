@@ -19,7 +19,11 @@ import {
   getCurrentVotesForSessionByRanking,
   setSingleRankingConsensus,
   getRemainingVoteCandidatesForSession,
-  getRankingsWithConsensusForSession, setSessionStatus, getConsensusSession, getConsensusWinnerRankingAndWalletAddress
+  getRankingsWithConsensusForSession,
+  setSessionStatus,
+  getConsensusSession,
+  getConsensusWinnerRankingAndWalletAddress,
+  getRecentSessionsForUserWalletAddress
 } from '@/lib/db';
 import { VerifyLoginPayloadParams, createAuth } from 'thirdweb/auth';
 import { privateKeyAccount } from 'thirdweb/wallets';
@@ -295,6 +299,13 @@ export async function getConsensusSetupAction(consensusSessionId: number): Promi
   return consensusSessionSetup;
 }
 
+export async function getRecentSessionsForUserWalletAddressAction() {
+  const beSession = await isAuthorized();
+  if (!beSession || !beSession.sessionid || !beSession.walletaddress || !beSession.userid) {
+    throw new Error('Not authorized');
+  }
+  return getRecentSessionsForUserWalletAddress(beSession.walletaddress);
+}
 /*********** CONSENSUS GROUPS ***********/
 
 /*********** CONSENSUS GROUP MEMBERS ***********/
@@ -457,7 +468,7 @@ export async function getRemainingRankingsForSessionAction(consensusSessionId: n
     const consensusReachedForCurrentRanking = await _hasConsensusOnRanking(consensusSessionId, groupid[0].groupid, rankingsWithConsensusResp[0].rankingvalue);
     const existingRankings = rankingsWithConsensusResp.map((ranking) => ranking.rankingvalue) as number[];
 
-    let remainingRankings: number[] = [];
+    let remainingRankings: number[];
     // CONSENSUS NOT REACHED, include the current ranking in the list, but exclude those having consensus
     if (!consensusReachedForCurrentRanking) {
       remainingRankings = Array.from({ length: highestRanking }, (_, i) => i + 1).filter((ranking) => !existingRankings.includes(ranking)).reverse();
@@ -537,12 +548,7 @@ async function _hasConsensusOnRanking(consensusSessionId: number, groupid: numbe
     return false;
   }
   // check if consensus reached
-  if (mostVotedForCandidate.count >= groupMembers.length * CONSENSUS_LIMIT) {
-    return true;
-  } else {
-    return false;
-  }
-  return false;
+  return mostVotedForCandidate.count >= groupMembers.length * CONSENSUS_LIMIT;
 }
 
 // SHOULD WE CLOSE THE SESSION?

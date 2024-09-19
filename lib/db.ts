@@ -2,7 +2,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq, ne, lt, and, gt, count, not, inArray } from 'drizzle-orm';
+import { eq, ne, lt, and, gt, count, not, inArray, desc, asc } from 'drizzle-orm';
 import { VercelPgDatabase } from 'drizzle-orm/vercel-postgres';
 import {
   drizzle as LocalDrizzle,
@@ -50,11 +50,7 @@ let db: | VercelPgDatabase<Record<string, never>>
 
 if (process.env.NODE_ENV === 'production') {
   db = drizzle(
-    neon(process.env.POSTGRES_URL!, {
-      fetchOptions: {
-        cache: 'no-store'
-      }
-    })
+    neon(process.env.POSTGRES_URL!)
   );
 } else {
   const migrationClient = postgres(process.env.POSTGRES_URL as string);
@@ -277,6 +273,21 @@ export async function isMemberOfSession(sessionid: number, walletaddress: string
     .limit(1);
 }
 
+export async function getRecentSessionsForUserWalletAddress(walletaddress: string) {
+  return db.select({
+    sessionid: consensusSessions.sessionid,
+    sessionStatus: consensusSessions.sessionstatus,
+    updated: consensusSessions.updated,
+  }).from(consensusSessions)
+    .innerJoin(consensusGroups, eq(consensusGroups.sessionid, consensusSessions.sessionid))
+    .innerJoin(consensusGroupMembers, eq(consensusGroupMembers.groupid, consensusGroups.groupid))
+    .innerJoin(users, eq(users.id, consensusGroupMembers.userid))
+    .where(and(eq(users.walletaddress, walletaddress),
+      eq(users.loggedin, true)))
+    .orderBy(asc(consensusSessions.created))
+    .limit(5);
+}
+
 // ************** ConsensusGroupsPgTable ****************** //
 export type ConsensusGroupsDbDto = typeof consensusGroups.$inferSelect;
 
@@ -467,55 +478,6 @@ export async function getCurrentVotesForSessionByRanking(
  */
 export async function getRemainingVoteCandidatesForSession(consensusSessionId: number, groupid: number) {
 console.log('getRemainingVoteCandidatesForSession');
-  // Check if there are any records in consensus_votes for the given session and group
-  // const existingConsensusResp = await db.select({
-  //   votedfor: consensusVotes.votedfor
-  // }).from(consensusVotes)
-  //   .where(and(
-  //     eq(consensusVotes.sessionid, consensusSessionId),
-  //     eq(consensusVotes.groupid, groupid)
-  //   ));
-  //
-  // if (existingConsensusResp.length > 0) {
-  //   const existingVotes = existingConsensusResp.map((vote) => vote.votedfor) as number[];
-  //   // If votes exist, join with consensusVotes
-  //   return db.selectDistinct({
-  //     name: users.name,
-  //     username: users.username,
-  //     walletaddress: users.walletaddress
-  //   }).from(users)
-  //     .innerJoin(consensusGroupMembers, eq(users.id, consensusGroupMembers.userid))
-  //     .innerJoin(consensusGroups, eq(consensusGroups.groupid, consensusGroupMembers.groupid))
-  //     .innerJoin(consensusSessions, eq(consensusSessions.sessionid, consensusGroups.sessionid))
-  //     .innerJoin(consensusVotes, eq(consensusVotes.sessionid, consensusSessions.sessionid))
-  //     .where(
-  //       and(
-  //         eq(consensusSessions.sessionid, consensusSessionId),
-  //         eq(consensusSessions.sessionstatus, 1),
-  //         eq(consensusGroups.groupstatus, 1),
-  //         eq(consensusGroups.groupid, groupid),
-  //         eq(users.loggedin, true),
-  //         not(inArray(users.id, existingVotes)))
-  //     );
-  // } else {
-  //   // If no votes exist, skip the join with consensusVotes
-  //   return db.selectDistinct({
-  //     name: users.name,
-  //     username: users.username,
-  //     walletaddress: users.walletaddress
-  //   }).from(users)
-  //     .innerJoin(consensusGroupMembers, eq(users.id, consensusGroupMembers.userid))
-  //     .innerJoin(consensusGroups, eq(consensusGroups.groupid, consensusGroupMembers.groupid))
-  //     .innerJoin(consensusSessions, eq(consensusSessions.sessionid, consensusGroups.sessionid))
-  //     .where(
-  //       and(
-  //         eq(consensusSessions.sessionid, consensusSessionId),
-  //         eq(consensusSessions.sessionstatus, 1),
-  //         eq(consensusGroups.groupstatus, 1),
-  //         eq(consensusGroups.groupid, groupid),
-  //         eq(users.loggedin, true))
-  //     );
-  // }
   const existingConsensusResp = await db.select({ votedfor: consensusStatus.votedfor }).from(consensusStatus).where(
     eq(consensusStatus.sessionid, consensusSessionId));
 
