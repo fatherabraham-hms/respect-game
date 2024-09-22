@@ -12,21 +12,14 @@ import { useRouter } from 'next/navigation';
 import { AuthContext } from '../../data/context/Contexts';
 import { useContext } from 'react';
 import { User } from '@/lib/dtos/user.dto';
-import { useCookies } from 'next-client-cookies';
 
 // TODO: possible future direction https://docs.passport.xyz/, https://help.guild.xyz/en/articles/6947626-guild-sdk
 
 export default function Connect() {
   const router = useRouter();
   const authContext = useContext(AuthContext);
-  const currentUserCookies = useCookies();
 
   async function isLoggedInSetContext(profile: Partial<User> | null, verifiedAddr: string): Promise<boolean> {
-    // don't continue to ping if they don't have the jwt or activeWalletAddress
-    if (!currentUserCookies.get('jwt') || !currentUserCookies.get('activeWalletAddress')) {
-      return false;
-    }
-
     const admin = await isLoggedInUserAdmin();
     const isLoggedIn = await isLoggedInAction(verifiedAddr);
     if (isLoggedIn) {

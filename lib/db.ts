@@ -2,7 +2,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq, ne, lt, and, gt, count, not, inArray, desc, asc } from 'drizzle-orm';
+import { eq, ne, lt, and, gt, count, not, inArray, desc } from 'drizzle-orm';
 import { VercelPgDatabase } from 'drizzle-orm/vercel-postgres';
 import {
   drizzle as LocalDrizzle,
@@ -284,7 +284,7 @@ export async function getRecentSessionsForUserWalletAddress(walletaddress: strin
     .innerJoin(users, eq(users.id, consensusGroupMembers.userid))
     .where(and(eq(users.walletaddress, walletaddress),
       eq(users.loggedin, true)))
-    .orderBy(asc(consensusSessions.created))
+    .orderBy(desc(consensusSessions.created))
     .limit(5);
 }
 
@@ -466,7 +466,7 @@ export async function getCurrentVotesForSessionByRanking(
   } else {
     statement.groupBy(users.walletaddress, consensusVotes.votedfor);
   }
-  console.log(statement);
+  // console.log(statement.toSQL());
   return statement;
 }
 
@@ -491,8 +491,7 @@ console.log('getRemainingVoteCandidatesForSession');
 
   const baseWhere = and(
     eq(consensusSessions.sessionid, consensusSessionId),
-    eq(consensusSessions.sessionstatus, 1),
-    eq(users.loggedin, true)
+    eq(consensusSessions.sessionstatus, 1)
   );
 
   const where = shouldJoinFinalConsensus
@@ -502,7 +501,8 @@ console.log('getRemainingVoteCandidatesForSession');
   const query = db.selectDistinct({
     name: users.name,
     username: users.username,
-    walletaddress: users.walletaddress
+    walletaddress: users.walletaddress,
+    loggedin: users.loggedin
   }).from(users)
     .innerJoin(consensusGroupMembers, eq(users.id, consensusGroupMembers.userid))
     .innerJoin(consensusGroups, eq(consensusGroups.groupid, consensusGroupMembers.groupid))
@@ -513,9 +513,9 @@ console.log('getRemainingVoteCandidatesForSession');
     ))
     .where(where);
 
-  // const { sql, params } = query.toSQL();
-  // console.log('SQL Query:', sql);
-  // console.log('Parameters:', params);
+  const { sql, params } = query.toSQL();
+  console.log('SQL Query:', sql);
+  console.log('Parameters:', params);
   return query;
 }
 

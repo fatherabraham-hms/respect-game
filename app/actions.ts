@@ -175,8 +175,8 @@ export async function logout() {
     await setUserLoginStatusById(activeWalletAddress?.value, false);
   }
   // TODO invalidate session
-  cookies().delete('activeWalletAddress');
-  cookies().delete('jwt');
+  // cookies().delete('activeWalletAddress');
+  // cookies().delete('jwt');
 }
 
 /*********** USERS ***********/
@@ -344,7 +344,7 @@ export async function setSingleVoteAction(
       updated: new Date()
     });
   }
-  return getCurrentVotesForSessionByRanking('walletaddress', consensusSessionId, consensusSessionSetupModel.groupNum, ranking) as Promise<Vote[]>;
+  return getCurrentVotesForSessionByRankingAction(consensusSessionId, ranking);
 }
 
 export async function getCurrentVotesForSessionByRankingAction(consensusSessionId: number, ranking: number) {
@@ -515,6 +515,9 @@ export async function getConsensusSessionWinnersAction(consensusSessionId: numbe
 }
 
 export async function hasConsensusOnRankingAction(consensusSessionId: number, rankingValue: number) {
+  if (rankingValue === 0) {
+    return false;
+  }
   const beSession = await isAuthorized();
   if (!beSession || !beSession.sessionid || !beSession.walletaddress || !beSession.userid) {
     throw new Error('Not authorized');

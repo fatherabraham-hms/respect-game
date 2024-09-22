@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react';
 import { createConsensusSessionAndUserGroupAction, getUsers } from '@/app/actions';
 import toast from 'react-hot-toast';
 import { Spinner } from '@/components/icons';
+import { Badge } from '@/components/ui/badge';
 
 
 export function UsersTable() {
@@ -105,7 +106,12 @@ function UserRow({ user, groupAddresses, setGroupAddresses }: { user: User, grou
       <TableCell className="hidden md:table-cell">{user.email}</TableCell>
       <TableCell>{user.username}</TableCell>
       <TableCell>
-        <span>{user.loggedin.toString() }</span>
+        {
+          user.loggedin && <Badge color={'green'}>Logged In</Badge>
+        }
+        {
+          !user.loggedin && <Badge color={'red'}>Not Logged In</Badge>
+        }
       </TableCell>
     </TableRow>
   );

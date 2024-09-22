@@ -1,8 +1,11 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { getRecentSessionsForUserWalletAddressAction } from '@/app/actions';
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 export function Welcome() {
+  const router = useRouter();
   const [recentSessions, setRecentSessions] = useState<{
     sessionid: number;
     sessionStatus: number | null;
@@ -14,6 +17,10 @@ export function Welcome() {
       setRecentSessions(sessions);
     });
   }, []);
+
+  function joinSession(sessionid: number) {
+    router.push(`/play/${sessionid}`);
+  }
 
   return (
     <div>
@@ -54,7 +61,7 @@ export function Welcome() {
                         <a
                           className={'class="text-blue-600 hover:text-blue-500 decoration-2 hover:underline focus:outline-none focus:underline opacity-90'}
                           href={`/play/${session.sessionid}`}>Session
-                          #{session.sessionid}</a>
+                          #{session.sessionid}</a> {session.sessionStatus === 1 && <Button onClick={() => joinSession(session.sessionid)}>Join</Button>}
                       </td>
                       <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">{session.sessionStatus}</td>
                       <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">{session.updated.toLocaleDateString()}</td>
