@@ -2,7 +2,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq, ne, lt, and, gt, count, not, inArray, desc } from 'drizzle-orm';
+import { eq, ne, lt, and, gt, count, not, inArray, desc, asc } from 'drizzle-orm';
 import { VercelPgDatabase } from 'drizzle-orm/vercel-postgres';
 import {
   drizzle as LocalDrizzle,
@@ -256,7 +256,7 @@ export async function createConsensusSession(session: ConsensusSessionDto) {
   });
 }
 
-export async function isMemberOfSession(sessionid: number, walletaddress: string) {
+export async function getFirstMatchingMemberOfSession(sessionid: number, walletaddress: string) {
   // select all user records that are in the consensusGroupMembers table for the given groupId by joining the users table with the consensusGroupMembers table
   return db.select({
     name: users.name,
@@ -267,7 +267,7 @@ export async function isMemberOfSession(sessionid: number, walletaddress: string
     .innerJoin(consensusGroups, eq(consensusGroups.groupid, consensusGroupMembers.groupid))
     .innerJoin(consensusSessions, eq(consensusSessions.sessionid, consensusGroups.sessionid))
     .where(and(eq(users.walletaddress, walletaddress),
-      lt(consensusSessions.sessionstatus, 2),
+      lt(consensusSessions.sessionstatus, 3),
       eq(consensusGroups.sessionid, sessionid),
       eq(users.loggedin, true)))
     .limit(1);
@@ -284,7 +284,7 @@ export async function getRecentSessionsForUserWalletAddress(walletaddress: strin
     .innerJoin(users, eq(users.id, consensusGroupMembers.userid))
     .where(and(eq(users.walletaddress, walletaddress),
       eq(users.loggedin, true)))
-    .orderBy(desc(consensusSessions.created))
+    .orderBy(asc(consensusSessions.created))
     .limit(5);
 }
 
@@ -474,9 +474,8 @@ export async function getCurrentVotesForSessionByRanking(
  * getRemainingAttendeesForSession
  * get remaining attendees who have not been saved to the consensus_votes table
  * @param consensusSessionId
- * @param groupid
  */
-export async function getRemainingVoteCandidatesForSession(consensusSessionId: number, groupid: number) {
+export async function getRemainingVoteCandidatesForSession(consensusSessionId: number) {
 console.log('getRemainingVoteCandidatesForSession');
   const existingConsensusResp = await db.select({ votedfor: consensusStatus.votedfor }).from(consensusStatus).where(
     eq(consensusStatus.sessionid, consensusSessionId));
@@ -560,13 +559,14 @@ export async function setSingleRankingConsensus(
  * get all consensus winners for each ranking by consensussessionid
  * @param sessionid
  */
-export async function getConsensusWinnerRankingAndWalletAddress(sessionid: number) {
+export async function getConsensusWinnersRankingsAndWalletAddresses(sessionid: number) {
   return db.select({
     rankingvalue: consensusStatus.rankingvalue,
     walletaddress: users.walletaddress,
     name: users.name
   }).from(consensusStatus)
-    .innerJoin(users, eq(users.id, consensusVotes.votedfor))
-    .where(eq(consensusStatus.sessionid, sessionid));
+    .innerJoin(users, eq(users.id, consensusStatus.votedfor))
+    .where(eq(consensusStatus.sessionid, sessionid))
+    .orderBy(desc(consensusStatus.rankingvalue));
 }
 

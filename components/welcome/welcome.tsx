@@ -13,9 +13,14 @@ export function Welcome() {
   }[]>([]);
 
   useEffect(() => {
-    getRecentSessionsForUserWalletAddressAction().then((sessions) => {
-      setRecentSessions(sessions);
-    });
+    const getSessions = async () => {
+      return getRecentSessionsForUserWalletAddressAction().then((sessions) => {
+        setRecentSessions(sessions);
+      });
+    };
+    getSessions();
+    const interval = setInterval(getSessions, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   function joinSession(sessionid: number) {
@@ -43,7 +48,8 @@ export function Welcome() {
                   <thead>
                   <tr>
                     <th scope="col"
-                        className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-500">Session Number
+                        className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-500">Session
+                      Number
                     </th>
                     <th scope="col"
                         className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-500">Status
@@ -61,10 +67,16 @@ export function Welcome() {
                         <a
                           className={'class="text-blue-600 hover:text-blue-500 decoration-2 hover:underline focus:outline-none focus:underline opacity-90'}
                           href={`/play/${session.sessionid}`}>Session
-                          #{session.sessionid}</a> {session.sessionStatus === 1 && <Button onClick={() => joinSession(session.sessionid)}>Join</Button>}
+                          #{session.sessionid}</a>&#x2003;
+                        {session.sessionStatus === 1 &&
+                        <Button
+                          className={'bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-2 text-sm rounded'}
+                          onClick={() => joinSession(session.sessionid)}>Join</Button>}
                       </td>
-                      <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">{session.sessionStatus}</td>
-                      <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">{session.updated.toLocaleDateString()}</td>
+                      <td
+                        className="px-6 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">{session.sessionStatus}</td>
+                      <td
+                        className="px-6 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">{session.updated.toLocaleDateString()}</td>
                     </tr>
                   ))}
                   </tbody>

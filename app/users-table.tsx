@@ -27,7 +27,7 @@ export function UsersTable() {
   const offset = 0;
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchUserData = async () => {
       try {
         const result: Partial<User[]> | unknown = await getUsers(query, offset);
         const users = result as Partial<User[]>;
@@ -37,8 +37,9 @@ export function UsersTable() {
         console.error('Error fetching data:', error);
       }
     };
-
-    fetchData();
+    fetchUserData();
+    const interval = setInterval(fetchUserData, 5000);
+    return () => clearInterval(interval);
   }, [query, offset]);
 
   function createSessionHandler() {
@@ -48,14 +49,24 @@ export function UsersTable() {
         toast.success('Session Created!');
         router.push(`/play/${resp}`);
       }
-    }).catch((error) => toast.error('Oops! An error occured, please try again!'));
+    }).catch(() => toast.error('Oops! An error occured, please try again!'));
     setIsLoading(false);
   }
 
-  if (isLoading) return <Spinner />
+  if (isLoading) return <Spinner />;
 
   return (
     <>
+      {(
+        <Button
+          className="mt-4 w-40 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          disabled={groupAddresses?.length <= 1}
+          onClick={() => createSessionHandler()}
+        >
+          Create Session ({groupAddresses?.length || 0})
+        </Button>
+      )}
+      <br/>
       <form className="border shadow-sm rounded-lg">
         <Table>
           <TableHeader>
@@ -69,26 +80,21 @@ export function UsersTable() {
           </TableHeader>
           <TableBody>
             {users?.map((user: any) => (
-              <UserRow key={user.walletaddress} user={user} groupAddresses={groupAddresses} setGroupAddresses={setGroupAddresses}/>
+              <UserRow key={user.walletaddress} user={user} groupAddresses={groupAddresses}
+                       setGroupAddresses={setGroupAddresses} />
             ))}
           </TableBody>
         </Table>
       </form>
-      {offset !== null && (
-        <Button
-          className="mt-4 w-40"
-          variant="default"
-          disabled={groupAddresses?.length <= 1}
-          onClick={() => createSessionHandler()}
-        >
-          Create Session ({groupAddresses?.length || 0})
-        </Button>
-      )}
     </>
   );
 }
 
-function UserRow({ user, groupAddresses, setGroupAddresses }: { user: User, groupAddresses: string[], setGroupAddresses: any}) {
+function UserRow({ user, groupAddresses, setGroupAddresses }: {
+  user: User,
+  groupAddresses: string[],
+  setGroupAddresses: any
+}) {
   function handleCheckbox(event: any) {
     console.log(event.target.value);
     if (event.target.checked) {
@@ -97,10 +103,13 @@ function UserRow({ user, groupAddresses, setGroupAddresses }: { user: User, grou
       setGroupAddresses(groupAddresses.filter((address) => address !== event.target.value));
     }
   }
+
+  const disabledStyle = 'bg-gray-200 text-gray-500 hover:bg-gray-200 cursor-not-allowed';
   return (
-    <TableRow>
+    <TableRow className={!user.loggedin ? disabledStyle : ''}>
       <TableCell>
-        <input type="checkbox" value={user.walletaddress} onClick={handleCheckbox}/>
+        <input className={!user.loggedin ? disabledStyle : ''}
+               disabled={!user.loggedin} type="checkbox" value={user.walletaddress} onClick={handleCheckbox} />
       </TableCell>
       <TableCell className="font-medium">{user.name}</TableCell>
       <TableCell className="hidden md:table-cell">{user.email}</TableCell>

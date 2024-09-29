@@ -22,7 +22,6 @@ import { Toaster } from 'react-hot-toast';
 export default function RootLayout({children}: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const connectionStatus = useActiveWalletConnectionStatus();
   const [authContext, setAuthContext] = useState({
     isLoggedIn: false,
@@ -57,7 +56,7 @@ export default function RootLayout({children}: {
               </div>
               <div className="flex-1 overflow-auto py-2">
                 {authContext?.isLoggedIn && (
-                  <NavSidebar />
+                  <NavSidebar isAdmin={authContext.isAdmin} />
                 )}
               </div>
             </div>

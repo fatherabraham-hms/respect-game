@@ -14,7 +14,7 @@ import {
   getUserIdByWalletAddress,
   getActiveGroupMembersByGroupId,
   getActiveGroupIdBySessionId,
-  isMemberOfSession,
+  getFirstMatchingMemberOfSession,
   castSingleVoteForUser,
   getCurrentVotesForSessionByRanking,
   setSingleRankingConsensus,
@@ -22,7 +22,7 @@ import {
   getRankingsWithConsensusForSession,
   setSessionStatus,
   getConsensusSession,
-  getConsensusWinnerRankingAndWalletAddress,
+  getConsensusWinnersRankingsAndWalletAddresses,
   getRecentSessionsForUserWalletAddress
 } from '@/lib/db';
 import { VerifyLoginPayloadParams, createAuth } from 'thirdweb/auth';
@@ -93,8 +93,8 @@ async function isMemberOfSessionAction(consensusSessionId: number): Promise<bool
     return false;
   }
   const isAdmin = await isLoggedInUserAdmin();
-  const isMember = await isMemberOfSession(consensusSessionId, beSession.walletaddress);
-  return !(!isAdmin && isMember?.length < 1);
+  const isMember = await getFirstMatchingMemberOfSession(consensusSessionId, beSession.walletaddress);
+  return isAdmin || isMember?.length === 1;
 }
 
 export async function generatePayload(param: { address: string, chainId: number }) {
@@ -292,7 +292,7 @@ export async function getConsensusSetupAction(consensusSessionId: number): Promi
     votes: []
   };
 
-  const groupMembers = await getRemainingVoteCandidatesForSession(consensusSessionId, groupid[0].groupid);
+  const groupMembers = await getRemainingVoteCandidatesForSession(consensusSessionId);
   if (groupMembers && groupMembers.length > 0) {
     consensusSessionSetup.attendees = [...groupMembers as User[]];
   }
@@ -431,7 +431,7 @@ export async function getRemainingAttendeesForSessionAction(consensusSessionId: 
   if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
     throw new Error('Not a member of group');
   }
-  return getRemainingVoteCandidatesForSession(consensusSessionId, groupid[0].groupid);
+  return getRemainingVoteCandidatesForSession(consensusSessionId);
 }
 
 export async function getRemainingRankingsForSessionAction(consensusSessionId: number) {
@@ -511,7 +511,7 @@ export async function getConsensusSessionWinnersAction(consensusSessionId: numbe
   if (currentConsensusStatus[0].sessionstatus !== 2) {
     throw new Error('Voting not finished');
   }
-  return getConsensusWinnerRankingAndWalletAddress(consensusSessionId);
+  return getConsensusWinnersRankingsAndWalletAddresses(consensusSessionId);
 }
 
 export async function hasConsensusOnRankingAction(consensusSessionId: number, rankingValue: number) {
@@ -576,7 +576,12 @@ async function _handleSessionUpdates(consensusSessionId: number,
       if (!lastAttendee || lastAttendee.length === 0 || typeof lastAttendee[0].id !== 'number') {
         throw new Error('No last attendee found');
       }
-      await setSingleRankingConsensus(lastAttendee[0].id, consensusSessionId, groupid, remainingRankings[0], modifiedBy);
+      await setSingleRankingConsensus(
+        consensusSessionId,
+        remainingRankings[0],
+        lastAttendee[0].id,
+        1,
+        modifiedBy);
     }
     await setSessionStatus(consensusSessionId, 2);
   }
