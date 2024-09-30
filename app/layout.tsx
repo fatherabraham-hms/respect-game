@@ -10,7 +10,6 @@ import { useState } from 'react';
 import { NavSidebar } from '@/components/app-shell/nav-sidebar';
 import { Login } from '@/app/login/Login';
 import { AuthContext } from '../data/context/Contexts';
-import { useRouter } from 'next/navigation';
 import { Signup } from '@/components/signup/signup';
 import { Toaster } from 'react-hot-toast';
 // export const metadata = {
@@ -28,14 +27,6 @@ export default function RootLayout({children}: {
     isAdmin: false,
     hasProfile: false
   });
-  const { disconnect } = useDisconnect();
-  const wallet = useActiveWallet();
-
-  const handleDisconnect = () => {
-    if (wallet) {
-      disconnect(wallet);
-    }
-  }
 
   return (
     <AuthContext.Provider value={{ ...authContext, setAuthContext }}>
@@ -56,7 +47,7 @@ export default function RootLayout({children}: {
               </div>
               <div className="flex-1 overflow-auto py-2">
                 {authContext?.isLoggedIn && (
-                  <NavSidebar isAdmin={authContext.isAdmin} />
+                  <NavSidebar />
                 )}
               </div>
             </div>

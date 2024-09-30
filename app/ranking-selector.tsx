@@ -63,6 +63,7 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
       if (Array.isArray(currentVotesResp) && currentVotesResp.length > 0) {
         setVotingRound(currentVotesResp as Vote[]);
       }
+      updateAttendees(consensusSessionId);
     };
     const fetchConsensusStatus = async (ranking: number | null) => {
       hasConsensusOnRankingAction(consensusSessionId, ranking || 0).then((hasConsensus) => {
@@ -70,12 +71,6 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
       });
     };
 
-
-    // const fetchCurrentVotingInfo = async () => {
-    //   return Promise.all([fetchAvailableRankings(), fetchConsensusStatus()]).then(([ranking]) => {
-    //     return fetchVotingRound(ranking);
-    //   });
-    // };
     // first execute the fetchAvailableRankings function, then pass the result to both fetchConsensusStatus and fetchVotingRound to resolve independently
     const fetchCurrentVotingInfo = async () => {
       return fetchAvailableRankings().then((ranking) => {
@@ -121,6 +116,20 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
     }).catch(() => toast.error('Oops! An error occured, please try again!'));
   }
 
+  function updateAttendees(consSessionIdToUpdate: number) {
+    getRemainingAttendeesForSessionAction(consSessionIdToUpdate).then((remainingAttendees: Array<any>) => {
+      if (remainingAttendees.length === 0) {
+        toast.success('You have successfully reached consensus on this topic!');
+      } else {
+        rankingConfig.attendees = remainingAttendees;
+        setSession({
+          ...rankingConfig,
+          votes: []
+        });
+      }
+    });
+  }
+
   function nextLevel() {
     if (currentRankNumber === null) return;
     const nextRankNumber = rankingConfig.rankingScheme === 'numeric-descending' ? currentRankNumber - 1 : currentRankNumber + 1;
@@ -128,17 +137,7 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
     setSingleRankingConsensusStatusAction(consensusSessionId, currentRankNumber).then(
       () => {
         toast.success('Consensus Saved!');
-        getRemainingAttendeesForSessionAction(consensusSessionId).then((remainingAttendees: Array<any>) => {
-          if (remainingAttendees.length === 0) {
-            toast.success('You have successfully reached consensus on this topic!');
-          } else {
-            rankingConfig.attendees = remainingAttendees;
-            setSession({
-              ...rankingConfig,
-              votes: []
-            });
-          }
-        });
+        updateAttendees(consensusSessionId);
       }
     ).catch(() => toast.error('Oops! An error occured, please try again!'));
   }

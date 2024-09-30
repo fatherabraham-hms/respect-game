@@ -3,11 +3,20 @@ import { getConsensusSessionWinnersAction } from '@/app/actions';
 import { useEffect, useState } from 'react';
 import { ConsensusWinnerModel } from '@/lib/models/consensus-winner.model';
 import { Button } from '@/components/ui/button';
+import { getContract } from 'thirdweb';
+import { sepolia } from 'thirdweb/chains';
 
 export default function IndexPage({ params }: { params: { sessionid: string } }) {
   // const wallet = useActiveWallet();
   // const account = wallet?.getAccount();
   const [consensusRankings, setConsensusRankings] = useState<ConsensusWinnerModel[]>([]);
+
+  // const contact = getContract({
+  //   address: '',
+  //   chain: sepolia,
+  //   client: null
+  // });
+
 
 let warning = (
   <div className="flex items-center justify-center h-96">

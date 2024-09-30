@@ -1,5 +1,7 @@
 'use client';
 
+import { SessionList } from '@/components/sessions-list/session-list';
+
 export default function IndexPage() {
 
   return (
@@ -8,7 +10,7 @@ export default function IndexPage() {
         <h1 className="font-semibold text-lg md:text-2xl">Play the Respect Game</h1>
       </div>
       <div className="flex items-center justify-center h-96">
-        <h1 className="font-semibold text-lg md:text-2xl">Ask the leader for the session link to join!</h1>
+        <SessionList/>
       </div>
     </main>
   );
