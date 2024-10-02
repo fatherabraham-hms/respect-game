@@ -1,5 +1,6 @@
 'use client';
-import { ConsensusSession } from '@/app/play/consensus-session';
+
+import { SessionList } from '@/components/sessions-list/session-list';
 
 export default function IndexPage() {
 
@@ -8,7 +9,9 @@ export default function IndexPage() {
       <div className="flex items-center mb-8">
         <h1 className="font-semibold text-lg md:text-2xl">Play the Respect Game</h1>
       </div>
-      <ConsensusSession />
+      <div className="flex items-center justify-center h-96">
+        <SessionList/>
+      </div>
     </main>
   );
 }

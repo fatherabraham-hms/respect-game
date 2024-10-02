@@ -10,7 +10,6 @@ import { useState } from 'react';
 import { NavSidebar } from '@/components/app-shell/nav-sidebar';
 import { Login } from '@/app/login/Login';
 import { AuthContext } from '../data/context/Contexts';
-import { useRouter } from 'next/navigation';
 import { Signup } from '@/components/signup/signup';
 import { Toaster } from 'react-hot-toast';
 // export const metadata = {
@@ -22,21 +21,12 @@ import { Toaster } from 'react-hot-toast';
 export default function RootLayout({children}: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const connectionStatus = useActiveWalletConnectionStatus();
   const [authContext, setAuthContext] = useState({
     isLoggedIn: false,
     isAdmin: false,
     hasProfile: false
   });
-  const { disconnect } = useDisconnect();
-  const wallet = useActiveWallet();
-
-  const handleDisconnect = () => {
-    if (wallet) {
-      disconnect(wallet);
-    }
-  }
 
   return (
     <AuthContext.Provider value={{ ...authContext, setAuthContext }}>
