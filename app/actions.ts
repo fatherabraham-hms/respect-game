@@ -313,7 +313,6 @@ export async function getRecentSessionsForUserWalletAddressAction() {
 /*********** CONSENSUS VOTES ***********/
 export async function setSingleVoteAction(
   consensusSessionId: number,
-  consensusSessionSetupModel: ConsensusSessionSetupModel,
   ranking: number,
   walletAddress: string) {
   const beSession = await isAuthorized();
@@ -325,25 +324,24 @@ export async function setSingleVoteAction(
   if (!isAdmin && !isMemberofSession) {
     return null;
   }
-  if (!consensusSessionSetupModel || !consensusSessionSetupModel.attendees || consensusSessionSetupModel.attendees.length === 0) {
-    throw new Error('Input session not valid');
-  }
   const votedForResp = await getUserIdByWalletAddress(walletAddress);
   if (!votedForResp || votedForResp.length === 0 || typeof votedForResp[0].id !== 'number') {
     throw new Error('No current user found');
   }
-  const votedForUserId = votedForResp[0].id;
-  if (consensusSessionSetupModel.rankingScheme === 'numeric-descending') {
-    await castSingleVoteForUser({
-      votedfor: votedForUserId,
-      sessionid: consensusSessionId,
-      groupid: consensusSessionSetupModel.groupNum,
-      rankingvalue: ranking,
-      modifiedbyid: beSession.userid,
-      created: new Date(),
-      updated: new Date()
-    });
+  const groupid = await getActiveGroupIdBySessionId(consensusSessionId);
+  if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
+    throw new Error('Not a member of group');
   }
+  const votedForUserId = votedForResp[0].id;
+  await castSingleVoteForUser({
+    votedfor: votedForUserId,
+    sessionid: consensusSessionId,
+    groupid: groupid[0].groupid,
+    rankingvalue: ranking,
+    modifiedbyid: beSession.userid,
+    created: new Date(),
+    updated: new Date()
+  });
   return getCurrentVotesForSessionByRankingAction(consensusSessionId, ranking);
 }
 

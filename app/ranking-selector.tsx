@@ -104,8 +104,8 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
     if (!user || !currentRankNumber) {
       return;
     }
-    setSingleVoteAction(consensusSessionId,
-      rankingConfig,
+    setSingleVoteAction(
+      consensusSessionId,
       currentRankNumber!,
       user.walletaddress
     ).then((currentVotesResp) => {
