@@ -31,54 +31,55 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
   const [consensusReached, setConsensusReached] = useState(false);
   const [hasClickedRadionButton, setHasClickedRadionButton] = useState(false);
 
+  const fetchAvailableRankings = async (): Promise<number | null> => {
+    return getRemainingRankingsForSessionAction(consensusSessionId).then((remainingRankings: Array<number> | undefined) => {
+      if (rankingConfig.rankingScheme === 'numeric-descending' && remainingRankings) {
+        if (remainingRankings.length > 0) {
+          setCurrentRankNumber(remainingRankings[0]);
+          return remainingRankings[0] as number;
+        }
+        if (remainingRankings.length === 0) {
+          setCurrentRankNumber(0);
+          return 0;
+        }
+        return null;
+      }
+      return null;
+    });
+  };
+
+  // fetch the current voting round with short polling
+  const fetchVotingRound = async (ranking: number | null) => {
+    if (ranking === null || ranking === 0) {
+      return;
+    }
+    const currentVotesResp = await getCurrentVotesForSessionByRankingAction(
+      consensusSessionId,
+      ranking
+    );
+    if (Array.isArray(currentVotesResp) && currentVotesResp.length > 0) {
+      setVotingRound(currentVotesResp as Vote[]);
+    }
+    updateAttendees(consensusSessionId);
+  };
+  const fetchConsensusStatus = async (ranking: number | null) => {
+    hasConsensusOnRankingAction(consensusSessionId, ranking || 0).then((hasConsensus) => {
+      setConsensusReached(hasConsensus);
+    });
+  };
+
+  // first execute the fetchAvailableRankings function, then pass the result to both fetchConsensusStatus and fetchVotingRound to resolve independently
+  const fetchCurrentVotingInfo = async () => {
+    return fetchAvailableRankings().then((ranking) => {
+      fetchConsensusStatus(ranking);
+      return fetchVotingRound(ranking);
+    });
+  }
+
   useEffect(() => {
     isLoggedInUserAdmin().then((isAdmin) => {
       setIsAdmin(isAdmin);
     });
-    const fetchAvailableRankings = async (): Promise<number | null> => {
-      return getRemainingRankingsForSessionAction(consensusSessionId).then((remainingRankings: Array<number> | undefined) => {
-        if (rankingConfig.rankingScheme === 'numeric-descending' && remainingRankings) {
-          if (remainingRankings.length > 0) {
-            setCurrentRankNumber(remainingRankings[0]);
-            return remainingRankings[0] as number;
-          }
-          if (remainingRankings.length === 0) {
-            setCurrentRankNumber(0);
-            return 0;
-          }
-          return null;
-        }
-        return null;
-      });
-    };
-    // fetch the current voting round with short polling
-    const fetchVotingRound = async (ranking: number | null) => {
-      if (ranking === null || ranking === 0) {
-        return;
-      }
-      const currentVotesResp = await getCurrentVotesForSessionByRankingAction(
-        consensusSessionId,
-        ranking
-      );
-      if (Array.isArray(currentVotesResp) && currentVotesResp.length > 0) {
-        setVotingRound(currentVotesResp as Vote[]);
-      }
-      updateAttendees(consensusSessionId);
-    };
-    const fetchConsensusStatus = async (ranking: number | null) => {
-      hasConsensusOnRankingAction(consensusSessionId, ranking || 0).then((hasConsensus) => {
-        setConsensusReached(hasConsensus);
-      });
-    };
-
-    // first execute the fetchAvailableRankings function, then pass the result to both fetchConsensusStatus and fetchVotingRound to resolve independently
-    const fetchCurrentVotingInfo = async () => {
-      return fetchAvailableRankings().then((ranking) => {
-        fetchConsensusStatus(ranking);
-        return fetchVotingRound(ranking);
-      });
-    }
-
     fetchCurrentVotingInfo().then();
 
     const interval = setInterval(fetchCurrentVotingInfo, 5000);
@@ -138,6 +139,7 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
       () => {
         toast.success('Consensus Saved!');
         updateAttendees(consensusSessionId);
+        fetchCurrentVotingInfo().then();
       }
     ).catch(() => toast.error('Oops! An error occured, please try again!'));
   }

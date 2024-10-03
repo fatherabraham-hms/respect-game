@@ -2,7 +2,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq, ne, lt, and, gt, count, not, inArray, desc, asc } from 'drizzle-orm';
+import { eq, ne, lt, and, gt, count, not, inArray, desc } from 'drizzle-orm';
 import { VercelPgDatabase } from 'drizzle-orm/vercel-postgres';
 import {
   drizzle as LocalDrizzle,
@@ -277,14 +277,14 @@ export async function getRecentSessionsForUserWalletAddress(walletaddress: strin
   return db.select({
     sessionid: consensusSessions.sessionid,
     sessionStatus: consensusSessions.sessionstatus,
-    updated: consensusSessions.updated,
+    updated: consensusSessions.updated
   }).from(consensusSessions)
     .innerJoin(consensusGroups, eq(consensusGroups.sessionid, consensusSessions.sessionid))
     .innerJoin(consensusGroupMembers, eq(consensusGroupMembers.groupid, consensusGroups.groupid))
     .innerJoin(users, eq(users.id, consensusGroupMembers.userid))
     .where(and(eq(users.walletaddress, walletaddress),
       eq(users.loggedin, true)))
-    .orderBy(asc(consensusSessions.created))
+    .orderBy(desc(consensusSessions.updated))
     .limit(5);
 }
 
