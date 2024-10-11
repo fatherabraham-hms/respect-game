@@ -1,17 +1,21 @@
 'use client';
 
-import { ThirdwebProvider, useActiveWallet, useActiveWalletConnectionStatus, useDisconnect } from 'thirdweb/react';
+import { getAccessToken, useLogin, usePrivy } from '@privy-io/react-auth';
 import './globals.css';
 import Link from 'next/link';
 import { Analytics } from '@vercel/analytics/react';
 import { Logo } from '@/components/icons';
-import Connect from '@/components/ui/thirdweb-connect';
-import { useState } from 'react';
+import { PrivyProvider } from '@privy-io/react-auth';
+import { useEffect, useState } from 'react';
 import { NavSidebar } from '@/components/app-shell/nav-sidebar';
 import { Login } from '@/app/login/Login';
 import { AuthContext } from '../data/context/Contexts';
 import { Signup } from '@/components/signup/signup';
 import { Toaster } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
+import { PrivyClient } from '@privy-io/server-auth';
+import { login } from '@/app/actions';
+
 // export const metadata = {
 //   title: 'Next.js App Router + NextAuth + Tailwind CSS',
 //   description:
@@ -21,16 +25,49 @@ import { Toaster } from 'react-hot-toast';
 export default function RootLayout({children}: {
   children: React.ReactNode;
 }) {
-  const connectionStatus = useActiveWalletConnectionStatus();
+  const router = useRouter();
+  const [verifyResult, setVerifyResult] = useState();
   const [authContext, setAuthContext] = useState({
     isLoggedIn: false,
     isAdmin: false,
     hasProfile: false
   });
 
+  const {
+    ready,
+    authenticated,
+    user,
+    logout,
+    linkEmail,
+    linkWallet,
+    unlinkEmail,
+    linkPhone,
+    unlinkPhone,
+    unlinkWallet,
+    linkGoogle,
+    unlinkGoogle,
+    linkTwitter,
+    unlinkTwitter,
+    linkDiscord,
+    unlinkDiscord
+  } = usePrivy();
+
+  useEffect(() => {
+    if (ready && !authenticated) {
+      router.push("/");
+    }
+  }, [ready, authenticated, router]);
+
   return (
     <AuthContext.Provider value={{ ...authContext, setAuthContext }}>
-      <ThirdwebProvider>
+      <PrivyProvider
+        appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ''}
+        config={{
+          embeddedWallets: {
+            createOnLogin: 'all-users'
+          }
+        }}
+      >
         <html lang="en" className="h-full bg-gray-50">
         <body>
         <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
@@ -62,7 +99,7 @@ export default function RootLayout({children}: {
                 <Logo />
                 <span className="">ACME</span>
               </Link>
-              <Connect />
+              {/*<ThirdWebConnect />*/}
             </header>
             {
               (() => {
@@ -72,19 +109,19 @@ export default function RootLayout({children}: {
                       {children}
                     </div>
                   );
-                } else if (connectionStatus === 'connected' && authContext?.isLoggedIn && !authContext?.hasProfile) {
+                } else if (authenticated && authContext?.isLoggedIn && !authContext?.hasProfile) {
                   return (
                     <div className="flex-1 flex items-center justify-center">
                       <Signup />
                     </div>
                   );
-                // } else if (connectionStatus === 'connected' && !authContext?.isLoggedIn) {
-                //   handleDisconnect();
-                //   return (
-                //     <div className="flex-1 flex items-center justify-center">
-                //       For Security, you'll need to sign in to continue!
-                //     </div>
-                //   );
+                  // } else if (connectionStatus === 'connected' && !authContext?.isLoggedIn) {
+                  //   handleDisconnect();
+                  //   return (
+                  //     <div className="flex-1 flex items-center justify-center">
+                  //       For Security, you'll need to sign in to continue!
+                  //     </div>
+                  //   );
                 } else {
                   return (
                     <div className="flex-1 flex items-center justify-center">
@@ -100,7 +137,7 @@ export default function RootLayout({children}: {
         <Analytics />
         </body>
         </html>
-      </ThirdwebProvider>
+      </PrivyProvider>
     </AuthContext.Provider>
   );
 }

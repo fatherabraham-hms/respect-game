@@ -3,20 +3,47 @@ import { getConsensusSessionWinnersAction } from '@/app/actions';
 import { useEffect, useState } from 'react';
 import { ConsensusWinnerModel } from '@/lib/models/consensus-winner.model';
 import { Button } from '@/components/ui/button';
-import { getContract } from 'thirdweb';
-import { sepolia } from 'thirdweb/chains';
+import { getContract, prepareContractCall, sendTransaction } from 'thirdweb';
+import { optimism, sepolia } from 'thirdweb/chains';
+import { client } from '@/lib/client';
+import { useActiveWallet } from 'thirdweb/react';
 
 export default function IndexPage({ params }: { params: { sessionid: string } }) {
-  // const wallet = useActiveWallet();
-  // const account = wallet?.getAccount();
+  const wallet = useActiveWallet();
+  const account = wallet?.getAccount();
   const [consensusRankings, setConsensusRankings] = useState<ConsensusWinnerModel[]>([]);
 
-  // const contact = getContract({
-  //   address: '',
-  //   chain: sepolia,
-  //   client: null
-  // });
+  // https://of-console.frapps.xyz/classes/ORClient.html#proposeBreakoutResult
 
+  let contractAddress, chain;
+  if (process.env.NODE_ENV === 'production') {
+    contractAddress = process.env.OREC_SEPOLIA || '';
+    chain = optimism;
+  } else {
+    contractAddress = process.env.OREC_SEPOLIA || '';
+    chain = sepolia;
+  }
+
+  const contractInst = getContract({
+    address: contractAddress,
+    chain: chain,
+    client: client
+  });
+
+  const transaction = prepareContractCall({
+    contract: contractInst,
+    method: "function proposeBreakoutResult()",
+    params: [],
+  });
+
+  if (account) {
+    sendTransaction({
+      account,
+      transaction,
+    }).then((hash) => {
+      console.log('Transaction hash:', hash);
+    });
+  }
 
 let warning = (
   <div className="flex items-center justify-center h-96">

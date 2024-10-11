@@ -3,7 +3,7 @@ import { ethereum, optimism, optimismSepolia } from 'thirdweb/chains';
 // https://portal.thirdweb.com/connect/auth/frameworks/next
 import { client } from '@/lib/client';
 import {
-  generatePayload, getUserProfile,
+  getUserProfile,
   isLoggedInAction, isLoggedInUserAdmin,
   login,
   logout
@@ -11,15 +11,15 @@ import {
 import { useRouter } from 'next/navigation';
 import { AuthContext } from '../../data/context/Contexts';
 import { useContext } from 'react';
-import { User } from '@/lib/dtos/user.dto';
+import { RespectUser } from '@/lib/dtos/respect-user.dto';
 
 // TODO: possible future direction https://docs.passport.xyz/, https://help.guild.xyz/en/articles/6947626-guild-sdk
 
-export default function Connect() {
+export default function ThirdWebConnect() {
   const router = useRouter();
   const authContext = useContext(AuthContext);
 
-  async function isLoggedInSetContext(profile: Partial<User> | null, verifiedAddr: string): Promise<boolean> {
+  async function isLoggedInSetContext(profile: Partial<RespectUser> | null, verifiedAddr: string): Promise<boolean> {
     const admin = await isLoggedInUserAdmin();
     const isLoggedIn = await isLoggedInAction(verifiedAddr);
     if (isLoggedIn) {
@@ -62,8 +62,8 @@ export default function Connect() {
         }
 
       },
-      getLoginPayload: async ({ address }) =>
-        generatePayload({ address, chainId: ethereum.id }),
+      // getLoginPayload: async ({ address }) =>
+      //   generatePayload({ address, chainId: ethereum.id }),
       doLogout: async () => {
         console.log('logging out!');
         authContext.setAuthContext({

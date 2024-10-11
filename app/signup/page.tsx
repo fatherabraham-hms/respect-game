@@ -2,7 +2,7 @@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { updateUserProfileAction } from '@/app/actions';
-import { User } from '@/lib/dtos/user.dto';
+import { RespectUser } from '@/lib/dtos/respect-user.dto';
 import { Signup } from '@/components/signup/signup';
 // import { useRouter } from 'next/navigation';
 

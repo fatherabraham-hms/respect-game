@@ -12,7 +12,7 @@ import postgres from 'postgres';
 import { UsersPgTable } from '@/lib/postgres_drizzle/users.orm';
 import { ConsensusGroupsPgTable } from '@/lib/postgres_drizzle/consensus_groups.orm';
 import { ConsensusSessionsPgTable } from '@/lib/postgres_drizzle/consensus_sessions.orm';
-import { User } from '@/lib/dtos/user.dto';
+import { RespectUser } from '@/lib/dtos/respect-user.dto';
 import { User_be_sessionsOrm } from '@/lib/postgres_drizzle/user_be_sessions.orm';
 import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
 import { ConsensusGroupsMembersPgTable } from '@/lib/postgres_drizzle/consensus_group_members.orm';
@@ -183,7 +183,7 @@ export async function getUserProfileByUsername(username: string) {
   }).from(users).where(eq(users.username, username));
 }
 
-export async function createUserProfile(user: Partial<User>) {
+export async function createUserProfile(user: Partial<RespectUser>) {
   if (!user || user.walletaddress === undefined || user.walletaddress?.length < 5) {
     return null;
   }
@@ -192,7 +192,7 @@ export async function createUserProfile(user: Partial<User>) {
   );
 }
 
-export async function updateUserProfile(user: Partial<User>) {
+export async function updateUserProfile(user: Partial<RespectUser>) {
   if (!user || user.walletaddress === undefined || user.walletaddress?.length < 5) {
     return null;
   }
