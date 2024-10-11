@@ -1,36 +1,20 @@
-'use client';
-
-import { ThirdwebProvider, useActiveWallet, useActiveWalletConnectionStatus, useDisconnect } from 'thirdweb/react';
 import './globals.css';
 import Link from 'next/link';
 import { Analytics } from '@vercel/analytics/react';
 import { Logo } from '@/components/icons';
-import Connect from '@/components/ui/thirdweb-connect';
-import { useState } from 'react';
 import { NavSidebar } from '@/components/app-shell/nav-sidebar';
 import { Login } from '@/app/login/Login';
-import { AuthContext } from '../data/context/Contexts';
 import { Signup } from '@/components/signup/signup';
 import { Toaster } from 'react-hot-toast';
-// export const metadata = {
-//   title: 'Next.js App Router + NextAuth + Tailwind CSS',
-//   description:
-//     'A user admin dashboard configured with Next.js, Postgres, NextAuth, Tailwind CSS, TypeScript, and Prettier.'
-// };
 
 export default function RootLayout({children}: {
   children: React.ReactNode;
 }) {
-  const connectionStatus = useActiveWalletConnectionStatus();
-  const [authContext, setAuthContext] = useState({
-    isLoggedIn: false,
-    isAdmin: false,
-    hasProfile: false
-  });
+
 
   return (
-    <AuthContext.Provider value={{ ...authContext, setAuthContext }}>
-      <ThirdwebProvider>
+
+
         <html lang="en" className="h-full bg-gray-50">
         <body>
         <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
@@ -46,9 +30,9 @@ export default function RootLayout({children}: {
                 </Link>
               </div>
               <div className="flex-1 overflow-auto py-2">
-                {authContext?.isLoggedIn && (
+                {/*{authContext?.isLoggedIn && (*/}
                   <NavSidebar />
-                )}
+                {/*)}*/}
               </div>
             </div>
           </div>
@@ -62,36 +46,30 @@ export default function RootLayout({children}: {
                 <Logo />
                 <span className="">ACME</span>
               </Link>
-              <Connect />
+              {/*<Connect />*/}
             </header>
             {
               (() => {
-                if (authContext?.isLoggedIn && authContext?.hasProfile) {
-                  return (
-                    <div className="flex-1 overflow-auto">
-                      {children}
-                    </div>
-                  );
-                } else if (connectionStatus === 'connected' && authContext?.isLoggedIn && !authContext?.hasProfile) {
-                  return (
-                    <div className="flex-1 flex items-center justify-center">
-                      <Signup />
-                    </div>
-                  );
-                // } else if (connectionStatus === 'connected' && !authContext?.isLoggedIn) {
-                //   handleDisconnect();
+                // if (authContext?.isLoggedIn && authContext?.hasProfile) {
                 //   return (
-                //     <div className="flex-1 flex items-center justify-center">
-                //       For Security, you'll need to sign in to continue!
+                //     <div className="flex-1 overflow-auto">
+                //       {children}
                 //     </div>
                 //   );
-                } else {
+                // } else if (connectionStatus === 'connected' && authContext?.isLoggedIn && !authContext?.hasProfile) {
+                //   return (
+                //     <div className="flex-1 flex items-center justify-center">
+                //       <Signup />
+                //     </div>
+                //   );
+                //
+                // } else {
                   return (
                     <div className="flex-1 flex items-center justify-center">
                       <Login />
                     </div>
                   );
-                }
+                //}
               })()
             }
           </div>
@@ -100,7 +78,5 @@ export default function RootLayout({children}: {
         <Analytics />
         </body>
         </html>
-      </ThirdwebProvider>
-    </AuthContext.Provider>
   );
 }

@@ -25,9 +25,8 @@ import {
   getConsensusWinnersRankingsAndWalletAddresses,
   getRecentSessionsForUserWalletAddress
 } from '@/lib/db';
-import { VerifyLoginPayloadParams, createAuth } from 'thirdweb/auth';
-import { privateKeyAccount } from 'thirdweb/wallets';
-import { client } from '@/lib/client';
+import { User } from '@privy-io/server-auth';
+import { PrivyClient, AuthTokenClaims } from "@privy-io/server-auth";
 import { cookies, headers } from 'next/headers';
 import { RespectUser } from '@/lib/dtos/respect-user.dto';
 import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
@@ -40,30 +39,45 @@ if (process.env.NODE_ENV === 'development') {
   isDevEnv = true;
 }
 
+/*********** PRIVY AUTHENTICATION ***********/
+const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
+const PRIVY_APP_SECRET = process.env.PRIVY_APP_SECRET;
+const privy = new PrivyClient(PRIVY_APP_ID!, PRIVY_APP_SECRET!);
+
+export type AuthenticateSuccessResponse = {
+  claims: AuthTokenClaims;
+};
+
+export type AuthenticationErrorResponse = {
+  error: string;
+};
+
 /*********** THIRDWEB AUTHENTICATION ***********/
 // Checking JWT should be sufficient for most cases to verify that Client Server tampering is not happening
 // https://medium.com/swlh/hacking-json-web-tokens-jwts-9122efe91e4a
-const privateKey = process.env.THIRDWEB_ADMIN_PRIVATE_KEY || '';
+// const privateKey = process.env.THIRDWEB_ADMIN_PRIVATE_KEY || '';
 
-if (!privateKey) {
-  throw new Error('Missing THIRDWEB_ADMIN_PRIVATE_KEY in .env file.');
-}
+// if (!privateKey) {
+//   throw new Error('Missing THIRDWEB_ADMIN_PRIVATE_KEY in .env file.');
+// }
+// FE https://docs.privy.io/guide/react/authorization
+// BE https://docs.privy.io/guide/server/authorization/verification
 
-const thirdwebAuth = createAuth({
-  domain: process.env.NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN || '',
-  adminAccount: privateKeyAccount({ client, privateKey }),
-  client: client
-});
+// const thirdwebAuth = createAuth({
+//   domain: process.env.NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN || '',
+//   adminAccount: privateKeyAccount({ client, privateKey }),
+//   client: client
+// });
 
 async function checkJWT() {
   const jwt = cookies().get('jwt');
   if (!jwt?.value) {
     return null;
   }
-  const authResult = await thirdwebAuth.verifyJWT({ jwt: jwt.value });
-  if (!authResult.valid) {
-    return null;
-  }
+  // const authResult = await thirdwebAuth.verifyJWT({ jwt: jwt.value });
+  // if (!authResult.valid) {
+  //   return null;
+  // }
 }
 
 async function isAuthorized() {
@@ -97,35 +111,46 @@ async function isMemberOfSessionAction(consensusSessionId: number): Promise<bool
   return isAdmin || isMember?.length === 1;
 }
 
-export async function generatePayload(param: { address: string, chainId: number }) {
-  param.chainId = 1;
-  return await thirdwebAuth.generatePayload(param);
-}
+// export async function generatePayload(param: { address: string, chainId: number }) {
+//   param.chainId = 1;
+//   return await thirdwebAuth.generatePayload(param);
+// }
 
-export async function login(payload: VerifyLoginPayloadParams) {
-  const verifiedPayload = await thirdwebAuth.verifyPayload(payload);
-  if (verifiedPayload.valid) {
-    const jwt = await thirdwebAuth.generateJWT({
-      payload: verifiedPayload.payload
-    });
-    cookies().set('jwt', jwt, { secure: !isDevEnv, expires: Date.now() + 1000 * 60 * 60 * 24 * 7 });
-    if (verifiedPayload?.payload?.address) {
-      cookies().set('activeWalletAddress', verifiedPayload?.payload?.address, {
-        secure: !isDevEnv,
-        expires: Date.now() + 1000 * 60 * 60 * 24 * 7
-      });
+// TODO - add the Privy Session ID to the BE session
+export async function login(claims: AuthTokenClaims) {
+  const accessToken = cookies().get('privy-token');
+  if (!accessToken?.value) {
+    return null;
+  }
+  let verifiedClaims: AuthTokenClaims | null = null;
+  try {
+    verifiedClaims = await privy.verifyAuthToken(accessToken.value);
+  } catch (error) {
+    console.log(`Token verification failed with error ${error}.`);
+    return null;
+  }
+
+  // TODO - migrate to privy
+
+  if (verifiedClaims) {
+    const jwt = cookies().get('jwt');
+    if (!jwt?.value) {
+      return null;
+    }
+    const user = await privy.getUser(accessToken.value);
+    if (user && user.wallet?.address) {
       const ipAddress = (headers().get('x-forwarded-for') ?? '127.0.0.1').split(',')[0];
-      const accountIdResp = await createUserAccountIfNotExists(verifiedPayload.payload.address);
+      const accountIdResp = await createUserAccountIfNotExists(user.wallet?.address);
       if (accountIdResp === null || accountIdResp.length === 0) {
         return null;
       }
-      const validSession = await getBeUserSession(ipAddress, jwt, verifiedPayload?.payload?.address);
+      const validSession = await getBeUserSession(ipAddress, jwt?.value, user.wallet?.address);
       if (validSession?.length === 0) {
         await createBeUserSession({
           sessionid: undefined,
           userid: accountIdResp?.[0]?.id || 0,
           ipaddress: ipAddress,
-          walletaddress: verifiedPayload.payload.address,
+          walletaddress: user.wallet?.address,
           jwt: jwt,
           jsondata: '',
           expires: new Date(),
@@ -133,8 +158,8 @@ export async function login(payload: VerifyLoginPayloadParams) {
           updated: new Date()
         });
       }
-      await setUserLoginStatusById(verifiedPayload.payload.address, true);
-      return verifiedPayload.payload.address;
+      await setUserLoginStatusById(user.wallet?.address, true);
+      return user.wallet?.address;
     }
   }
 }
