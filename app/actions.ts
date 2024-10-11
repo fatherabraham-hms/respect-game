@@ -29,7 +29,7 @@ import { VerifyLoginPayloadParams, createAuth } from 'thirdweb/auth';
 import { privateKeyAccount } from 'thirdweb/wallets';
 import { client } from '@/lib/client';
 import { cookies, headers } from 'next/headers';
-import { User } from '@/lib/dtos/user.dto';
+import { RespectUser } from '@/lib/dtos/respect-user.dto';
 import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
 import { ConsensusSessionSetupModel, Vote } from '@/lib/models/consensus-session-setup.model';
 import { CONSENSUS_LIMIT } from '../data/constants/app_constants';
@@ -194,10 +194,10 @@ export async function getUsers(query: string = '', offset: number = 0) {
   });
 }
 
-export async function getUserProfile(address: string): Promise<Partial<User> | null> {
+export async function getUserProfile(address: string): Promise<Partial<RespectUser> | null> {
   await checkJWT();
   const profile = await getUserProfileByWalletAddress(address);
-  let profileData: Partial<User> | null = null;
+  let profileData: Partial<RespectUser> | null = null;
   if (Array.isArray(profile) && profile.length > 0) {
     // @ts-ignore
     profileData = profile[0];
@@ -207,10 +207,10 @@ export async function getUserProfile(address: string): Promise<Partial<User> | n
   });
 }
 
-export async function updateUserProfileAction(user: Partial<User>): Promise<Partial<User> | { message: string }> {
+export async function updateUserProfileAction(user: Partial<RespectUser>): Promise<Partial<RespectUser> | { message: string }> {
   await checkJWT();
   const result = await updateUserProfile(user);
-  return result as Partial<User> | { message: string };
+  return result as Partial<RespectUser> | { message: string };
 }
 
 // TODO - set up hats protocol
@@ -294,7 +294,7 @@ export async function getConsensusSetupAction(consensusSessionId: number): Promi
 
   const groupMembers = await getRemainingVoteCandidatesForSession(consensusSessionId);
   if (groupMembers && groupMembers.length > 0) {
-    consensusSessionSetup.attendees = [...groupMembers as User[]];
+    consensusSessionSetup.attendees = [...groupMembers as RespectUser[]];
   }
   return consensusSessionSetup;
 }

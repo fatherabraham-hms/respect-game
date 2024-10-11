@@ -8,7 +8,7 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import { useActiveWallet } from 'thirdweb/react';
 import { AuthContext } from '../../data/context/Contexts';
 import toast from 'react-hot-toast';
-import { User } from '@/lib/dtos/user.dto';
+import { RespectUser } from '@/lib/dtos/respect-user.dto';
 
 type SignupInputs = {
   name: string;
@@ -38,7 +38,7 @@ export function Signup() {
     updateUserProfileAction({
       ...formProps,
       walletaddress: wallet?.getAccount()?.address
-    }).then((response: Partial<User> | { message: string }) => {
+    }).then((response: Partial<RespectUser> | { message: string }) => {
       if (response && !('message' in response)) {
         authContext.setAuthContext({
           ...authContext,
