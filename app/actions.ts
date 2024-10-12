@@ -69,20 +69,20 @@ export type AuthenticationErrorResponse = {
 //   client: client
 // });
 
-async function checkJWT() {
-  const jwt = cookies().get('jwt');
-  if (!jwt?.value) {
+async function checkAccessToken() {
+  const accessToken = cookies().get('privy-token');
+  if (!accessToken?.value) {
     return null;
   }
-  // const authResult = await thirdwebAuth.verifyJWT({ jwt: jwt.value });
-  // if (!authResult.valid) {
-  //   return null;
-  // }
+  const verifiedClaims = await privy.verifyAuthToken(accessToken.value);
+  if (!verifiedClaims) {
+    return null;
+  }
 }
 
 async function isAuthorized() {
-  await checkJWT();
-  const jwt = cookies().get('jwt');
+  await checkAccessToken();
+  const jwt = cookies().get('authjs.csrf-token');
   const activeWalletAddress = cookies().get('activeWalletAddress');
   const ipaddress = (headers().get('x-forwarded-for') ?? '127.0.0.1').split(',')[0];
   if (activeWalletAddress?.value && (!jwt?.value || !ipaddress)) {
@@ -117,7 +117,7 @@ async function isMemberOfSessionAction(consensusSessionId: number): Promise<bool
 // }
 
 // TODO - add the Privy Session ID to the BE session
-export async function login(claims: AuthTokenClaims) {
+export async function login() {
   const accessToken = cookies().get('privy-token');
   if (!accessToken?.value) {
     return null;
@@ -133,7 +133,7 @@ export async function login(claims: AuthTokenClaims) {
   // TODO - migrate to privy
 
   if (verifiedClaims) {
-    const jwt = cookies().get('jwt');
+    const jwt = cookies().get('authjs.csrf-token');
     if (!jwt?.value) {
       return null;
     }
@@ -194,7 +194,7 @@ export async function isLoggedInAction(address: string): Promise<boolean> {
 }
 
 export async function logout() {
-  await checkJWT();
+  await checkAccessToken();
   const activeWalletAddress = cookies().get('activeWalletAddress');
   if (activeWalletAddress?.value) {
     await setUserLoginStatusById(activeWalletAddress?.value, false);
@@ -207,7 +207,7 @@ export async function logout() {
 /*********** USERS ***********/
 
 export async function getUsers(query: string = '', offset: number = 0) {
-  await checkJWT();
+  await checkAccessToken();
   const result = await getAllUsers(query, offset);
   if (result) {
     result?.users.forEach((user: Partial<SelectUser>) => {
@@ -220,7 +220,7 @@ export async function getUsers(query: string = '', offset: number = 0) {
 }
 
 export async function getUserProfile(address: string): Promise<Partial<RespectUser> | null> {
-  await checkJWT();
+  await checkAccessToken();
   const profile = await getUserProfileByWalletAddress(address);
   let profileData: Partial<RespectUser> | null = null;
   if (Array.isArray(profile) && profile.length > 0) {
@@ -233,7 +233,7 @@ export async function getUserProfile(address: string): Promise<Partial<RespectUs
 }
 
 export async function updateUserProfileAction(user: Partial<RespectUser>): Promise<Partial<RespectUser> | { message: string }> {
-  await checkJWT();
+  await checkAccessToken();
   const result = await updateUserProfile(user);
   return result as Partial<RespectUser> | { message: string };
 }
@@ -266,7 +266,7 @@ const defaultConsensusSession: ConsensusSessionDto = {
 };
 
 export async function createConsensusSessionAndUserGroupAction(groupAddresses: string[]) {
-  await checkJWT();
+  await checkAccessToken();
   const session: ConsensusSessionDto = defaultConsensusSession;
   // TODO - check incoming session if updated
   if (Object?.keys(session)?.length === 0) {
@@ -301,7 +301,7 @@ export async function getConsensusSetupAction(consensusSessionId: number): Promi
   if (consensusSessionId <= 0) {
     throw new Error('Invalid session id');
   }
-  await checkJWT();
+  await checkAccessToken();
   const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
   if (!isMemberofSession) {
     throw new Error('Not a member of session');
@@ -371,7 +371,7 @@ export async function setSingleVoteAction(
 }
 
 export async function getCurrentVotesForSessionByRankingAction(consensusSessionId: number, ranking: number) {
-  await checkJWT();
+  await checkAccessToken();
   const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
   if (!isMemberofSession) {
     throw new Error('Not a member of session');
