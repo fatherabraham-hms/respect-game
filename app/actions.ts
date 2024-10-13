@@ -23,7 +23,8 @@ import {
   setSessionStatus,
   getConsensusSession,
   getConsensusWinnersRankingsAndWalletAddresses,
-  getRecentSessionsForUserWalletAddress
+  getRecentSessionsForUserWalletAddress,
+  createPrivyMap
 } from '@/lib/db';
 import { User } from '@privy-io/server-auth';
 import { PrivyClient, AuthTokenClaims } from "@privy-io/server-auth";
@@ -111,13 +112,7 @@ async function isMemberOfSessionAction(consensusSessionId: number): Promise<bool
   return isAdmin || isMember?.length === 1;
 }
 
-// export async function generatePayload(param: { address: string, chainId: number }) {
-//   param.chainId = 1;
-//   return await thirdwebAuth.generatePayload(param);
-// }
-
-// TODO - add the Privy Session ID to the BE session
-export async function login() {
+export async function login(user: User) {
   const accessToken = cookies().get('privy-token');
   if (!accessToken?.value) {
     return null;
@@ -130,19 +125,20 @@ export async function login() {
     return null;
   }
 
-  // TODO - migrate to privy
-
   if (verifiedClaims) {
     const jwt = cookies().get('authjs.csrf-token');
     if (!jwt?.value) {
       return null;
     }
-    const user = await privy.getUser(accessToken.value);
     if (user && user.wallet?.address) {
+      cookies().set('activeWalletAddress', user.wallet?.address);
       const ipAddress = (headers().get('x-forwarded-for') ?? '127.0.0.1').split(',')[0];
-      const accountIdResp = await createUserAccountIfNotExists(user.wallet?.address);
+      const accountIdResp = await createUserAccountIfNotExists(user);
       if (accountIdResp === null || accountIdResp.length === 0) {
         return null;
+      } else {
+        // create privy map and update user table with mapid
+        await createPrivyMap(verifiedClaims, accountIdResp[0].id);
       }
       const validSession = await getBeUserSession(ipAddress, jwt?.value, user.wallet?.address);
       if (validSession?.length === 0) {
@@ -152,6 +148,7 @@ export async function login() {
           ipaddress: ipAddress,
           walletaddress: user.wallet?.address,
           jwt: jwt,
+          externalsessionid: verifiedClaims.sessionId,
           jsondata: '',
           expires: new Date(),
           created: new Date(),
@@ -166,18 +163,16 @@ export async function login() {
 
 /**
  * Caution - this method must remain private so it does not expose the userid
- * @param address
+ * @param user
  */
-async function createUserAccountIfNotExists(address: string): Promise<{id: number}[] | null> {
+async function createUserAccountIfNotExists(user: User): Promise<{id: number}[] | null> {
+  const address = user.wallet?.address;
+  if (!address) {
+    return null;
+  }
   const useridResp = await getUserIdByWalletAddress(address);
   if (!useridResp || useridResp.length === 0) {
-    await createUserProfile({
-      walletaddress: address,
-      name: undefined,
-      username: undefined,
-      email: '',
-      telegram: ''
-    });
+    await createUserProfile(user);
   } else if (useridResp && useridResp.length > 0 && typeof useridResp[0].id === 'number') {
     return useridResp;
   }

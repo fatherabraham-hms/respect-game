@@ -19,6 +19,8 @@ import { ConsensusGroupsMembersPgTable } from '@/lib/postgres_drizzle/consensus_
 import { ConsensusVotesPgTable } from '@/lib/postgres_drizzle/consensus_votes.orm';
 import { ConsensusVotesDto } from '@/lib/dtos/consensus-votes.dto';
 import { ConsensusStatusPgTable } from '@/lib/postgres_drizzle/consensus_status.orm';
+import { PrivyMapPgTable } from '@/lib/postgres_drizzle/privy_map.orm';
+import { User } from '@privy-io/server-auth';
 
 
 // ************** TABLES ****************** //
@@ -29,20 +31,7 @@ const consensusGroups = ConsensusGroupsPgTable;
 const consensusGroupMembers = ConsensusGroupsMembersPgTable;
 const consensusVotes = ConsensusVotesPgTable;
 const consensusStatus = ConsensusStatusPgTable;
-
-
-// -- create a table to store userid with groupid and sessionid
-// CREATE TABLE consensus_groups (groupid SERIAL PRIMARY KEY, sessionid INT REFERENCES consensus_sessions (sessionid), groupstatus SMALLINT, modifiedbyid integer REFERENCES users (id), created TIMESTAMP, updated TIMESTAMP);
-//
-// -- create a table to store group members
-// CREATE TABLE consensus_group_members (groupid INT REFERENCES consensus_groups (groupid), userid INT REFERENCES users (id), created TIMESTAMP, updated TIMESTAMP);
-//
-// --- create table to handle consensus session votes
-// CREATE TABLE consensus_votes (votedfor INT REFERENCES users (id), sessionid INT REFERENCES consensus_sessions (sessionid), groupid INT REFERENCES consensus_groups (groupid), rankingValue SMALLINT, modifiedbyid INT REFERENCES users (id), created TIMESTAMP, updated TIMESTAMP);
-//
-// -- create a table to store the final consensus with each ranking
-// CREATE TABLE consensus_status (sessionid INT REFERENCES consensus_sessions (sessionid), rankingValue INT, votedfor INT REFERENCES users (id), consensusStatus SMALLINT, modifiedbyid integer REFERENCES users (id), created TIMESTAMP, updated TIMESTAMP);
-
+const privyMap = PrivyMapPgTable;
 
 // https://www.thisdot.co/blog/configure-your-project-with-drizzle-for-local-and-deployed-databases
 let db: | VercelPgDatabase<Record<string, never>>
@@ -57,6 +46,24 @@ if (process.env.NODE_ENV === 'production') {
   db = LocalDrizzle(migrationClient, {
     logger: false
   });
+}
+
+// ************** PrivyMapPgTable ****************** //
+export type PrivyMap = typeof privyMap.$inferSelect;
+
+export async function getPrivyMapByUserId(userId: string) {
+  return db.select().from(privyMap).where(eq(privyMap.userId, userId));
+}
+
+export async function createPrivyMap(privyMapData: Partial<PrivyMap>, userId: number) {
+  const createMapResp = await db.insert(privyMap).values({
+    ...privyMapData
+  }).returning({
+    id: privyMap.privymapid
+  });
+  if (createMapResp && createMapResp.length > 0) {
+    return db.update(users).set({ privymapid: createMapResp[0].id }).where(eq(users.id, userId));
+  }
 }
 
 // ************** UserBeSessionPgTable ****************** //
@@ -112,6 +119,7 @@ export async function getAllUsers(
           name: users.name,
           username: users.username,
           email: users.email,
+          privymapid: users.privymapid,
           telegram: users.telegram,
           walletaddress: users.walletaddress,
           loggedin: users.loggedin,
@@ -183,11 +191,20 @@ export async function getUserProfileByUsername(username: string) {
   }).from(users).where(eq(users.username, username));
 }
 
-export async function createUserProfile(user: Partial<RespectUser>) {
-  if (!user || user.walletaddress === undefined || user.walletaddress?.length < 5) {
+// TODO - add social accounts so we have a backup way to find users
+export async function createUserProfile(user: User) {
+  if (!user || user.wallet?.address === undefined || user.wallet.address?.length < 5) {
     return null;
   }
-  return db.insert(users).values({ ...user }).returning(
+  return db.insert(users).values({
+    name: '',
+    username: '',
+    email: user.email?.address,
+    walletaddress: user.wallet.address,
+    loggedin: true,
+    lastlogin: new Date(),
+    permissions: 0
+  }).returning(
     { id: users.id }
   );
 }
