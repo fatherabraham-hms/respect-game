@@ -88,7 +88,6 @@ async function isAuthorized() {
   const ipaddress = (headers().get('x-forwarded-for') ?? '127.0.0.1').split(',')[0];
   if (activeWalletAddress?.value && (!jwt?.value || !ipaddress)) {
     await logout();
-    redirect('/');
   }
   if (!ipaddress || !activeWalletAddress?.value || !jwt?.value) {
     redirect('/');
@@ -97,7 +96,6 @@ async function isAuthorized() {
   // if no session is returned, make sure they are logged out fully.
   if (!session || session.length === 0) {
     await logout();
-    redirect('/');
   }
   return session[0];
 }
@@ -194,9 +192,10 @@ export async function logout() {
   if (activeWalletAddress?.value) {
     await setUserLoginStatusById(activeWalletAddress?.value, false);
   }
-  // TODO invalidate session
-  // cookies().delete('activeWalletAddress');
-  // cookies().delete('jwt');
+  cookies().delete('activeWalletAddress');
+  cookies().delete('privy-token');
+  cookies().delete('authjs.csrf-token');
+  redirect('/');
 }
 
 /*********** USERS ***********/
