@@ -147,7 +147,7 @@ export async function login(user: User) {
           userid: accountIdResp?.[0]?.id || 0,
           ipaddress: ipAddress,
           walletaddress: user.wallet?.address,
-          jwt: jwt,
+          jwt: jwt.value,
           externalsessionid: verifiedClaims.sessionId,
           jsondata: '',
           expires: new Date(),
@@ -242,7 +242,7 @@ export async function isLoggedInUserAdmin(): Promise<boolean> {
   const admins = process.env.RESPECT_GAME_ADMINS?.split(',') || [];
   const session = await isAuthorized();
   if (session) {
-    return admins?.some((addr) => addr === session?.walletaddress);
+    return admins?.some((addr) => addr.toLowerCase() === session?.walletaddress?.toLowerCase());
   }
   return false;
 }

@@ -49,15 +49,18 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // ************** PrivyMapPgTable ****************** //
-export type PrivyMap = typeof privyMap.$inferSelect;
-
-export async function getPrivyMapByUserId(userId: string) {
-  return db.select().from(privyMap).where(eq(privyMap.userId, userId));
+export async function getPrivyMapByUserId(userId: number) {
+  return db.select().from(privyMap).where(eq(privyMap.userid, userId));
 }
 
-export async function createPrivyMap(privyMapData: Partial<PrivyMap>, userId: number) {
+export async function createPrivyMap(privyMapData: any, userId: number) {
   const createMapResp = await db.insert(privyMap).values({
-    ...privyMapData
+    userid: userId,
+    sessionid: privyMapData.sessionId.toString(),
+    appid: privyMapData.appId,
+    issuer: privyMapData.issuer,
+    issuedat: privyMapData.issuedAt as number,
+    expiration: privyMapData.expiration as number
   }).returning({
     id: privyMap.privymapid
   });
@@ -127,7 +130,7 @@ export async function getAllUsers(
           permissions: users.permissions
         })
         .from(users)
-        .where(eq(users.loggedin, true))
+        .where(and(eq(users.loggedin, true),ne(users.permissions, 0)))
         .limit(1000),
       newOffset: null
     };
@@ -199,11 +202,11 @@ export async function createUserProfile(user: User) {
   return db.insert(users).values({
     name: '',
     username: '',
-    email: user.email?.address,
+    email: user.email?.address || '',
     walletaddress: user.wallet.address,
     loggedin: true,
     lastlogin: new Date(),
-    permissions: 0
+    permissions: 1
   }).returning(
     { id: users.id }
   );

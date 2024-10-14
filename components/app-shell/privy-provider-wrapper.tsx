@@ -13,7 +13,7 @@ export default function PrivyProviderWrapper({
   const router = useRouter();
   function loginBackendSession(user: User) {
     if (user) {
-      login(user).then(() => router.push("/users"));
+      login(user).then(() => router.push("/"));
     }
   }
 

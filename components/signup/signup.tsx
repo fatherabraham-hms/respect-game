@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useContext, useState } from 'react';
 import { updateUserProfileAction } from '@/app/actions';
 import { useForm, SubmitHandler } from 'react-hook-form';
-import { useActiveWallet } from 'thirdweb/react';
 import { AuthContext } from '../../data/context/Contexts';
 import toast from 'react-hot-toast';
 import { RespectUser } from '@/lib/dtos/respect-user.dto';
+import { usePrivy } from '@privy-io/react-auth';
 
 type SignupInputs = {
   name: string;
@@ -19,7 +19,12 @@ type SignupInputs = {
 
 export function Signup() {
   const router = useRouter();
-  const wallet = useActiveWallet();
+  const {
+    ready,
+    authenticated,
+    user,
+    logout,
+  } = usePrivy();
   const authContext = useContext(AuthContext);
   const [profileForm, setProfileForm] = useState({
     name: '',
@@ -37,7 +42,7 @@ export function Signup() {
   const onSubmit: SubmitHandler<SignupInputs> = (formProps) => {
     updateUserProfileAction({
       ...formProps,
-      walletaddress: wallet?.getAccount()?.address
+      walletaddress: user?.wallet?.address
     }).then((response: Partial<RespectUser> | { message: string }) => {
       if (response && !('message' in response)) {
         authContext.setAuthContext({
@@ -56,7 +61,7 @@ export function Signup() {
   };
 //https://v1.tailwindcss.com/components/forms
   return (
-    <div>
+    ready && authenticated && <div>
       <form className="w-full max-w-sm" onSubmit={handleSubmit(onSubmit)}>
         <div className="md:flex md:items-center mb-6">
           <div className="md:w-1/3">

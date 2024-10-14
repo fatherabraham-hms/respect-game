@@ -51,7 +51,7 @@ export function SessionList() {
                   </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-neutral-700">
-                  {recentSessions.map((session) => (
+                  {recentSessions?.length > 0 && recentSessions.map((session) => (
                     <tr key={session.sessionid}>
                       <td
                         className="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-neutral-200">
@@ -70,6 +70,7 @@ export function SessionList() {
                         className="px-6 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">{session.updated.toLocaleDateString()}</td>
                     </tr>
                   ))}
+                  { !recentSessions || recentSessions.length === 0 && <h2>No Sessions to show</h2> }
                   </tbody>
                 </table>
               </div>
