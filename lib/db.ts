@@ -130,7 +130,8 @@ export async function getAllUsers(
           permissions: users.permissions
         })
         .from(users)
-        .where(and(eq(users.loggedin, true),ne(users.permissions, 0)))
+        .where(and(eq(users.loggedin, true),gt(users.permissions, 0)))
+        .orderBy(desc(users.loggedin))
         .limit(1000),
       newOffset: null
     };
@@ -140,7 +141,23 @@ export async function getAllUsers(
     return { users: [], newOffset: null };
   }
 
-  const moreUsers = await db.select().from(users).limit(20).offset(offset);
+  const moreUsers = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      username: users.username,
+      email: users.email,
+      privymapid: users.privymapid,
+      telegram: users.telegram,
+      walletaddress: users.walletaddress,
+      loggedin: users.loggedin,
+      lastlogin: users.lastlogin,
+      permissions: users.permissions
+    })
+    .from(users)
+    .where(and(eq(users.loggedin, true),gt(users.permissions, 0)))
+    .orderBy(desc(users.loggedin))
+    .limit(1000).offset(offset);
   const newOffset = moreUsers.length >= 20 ? offset + 20 : null;
   return { users: moreUsers, newOffset };
 }

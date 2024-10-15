@@ -74,6 +74,7 @@ export function UsersTable() {
               <TableHead className="max-w-[50px]"></TableHead>
               <TableHead className="max-w-[150px]">Name</TableHead>
               <TableHead className="hidden md:table-cell">Email</TableHead>
+              <TableHead className="hidden md:table-cell">Wallet Address</TableHead>
               <TableHead className="hidden md:table-cell">Username</TableHead>
               <TableHead className="hidden md:table-cell">Logged In</TableHead>
             </TableRow>
@@ -113,6 +114,7 @@ function UserRow({ user, groupAddresses, setGroupAddresses }: {
       </TableCell>
       <TableCell className="font-medium">{user.name}</TableCell>
       <TableCell className="hidden md:table-cell">{user.email}</TableCell>
+      <TableCell className="font-medium">{user.walletaddress}</TableCell>
       <TableCell>{user.username}</TableCell>
       <TableCell>
         {
