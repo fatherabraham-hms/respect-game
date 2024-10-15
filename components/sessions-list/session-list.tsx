@@ -70,9 +70,9 @@ export function SessionList() {
                         className="px-6 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">{session.updated.toLocaleDateString()}</td>
                     </tr>
                   ))}
-                  { !recentSessions || recentSessions.length === 0 && <h2>No Sessions to show</h2> }
                   </tbody>
                 </table>
+                { !recentSessions || recentSessions.length === 0 && <h2>No Sessions to show</h2> }
               </div>
             </div>
           </div>
