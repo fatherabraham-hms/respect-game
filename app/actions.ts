@@ -67,6 +67,7 @@ async function checkAccessToken() {
 }
 
 async function isAuthorized() {
+  console.log('checking BE auth');
   const claims = await checkAccessToken();
   const jwt = cookies().get('authjs.csrf-token');
   const activeWalletAddress = cookies().get('activeWalletAddress');
@@ -75,6 +76,7 @@ async function isAuthorized() {
     await logout();
   }
   if (!ipaddress || !activeWalletAddress?.value || !jwt?.value) {
+    console.log('no ipaddress, wallet, or jwt found');
     redirect('/');
   }
   const session = await getBeUserSession(ipaddress, activeWalletAddress.value, jwt?.value || '');
@@ -90,25 +92,28 @@ async function isAuthorized() {
       if (Array.isArray(profile) && profile.length > 0) {
         profileData = profile[0] as RespectUser;
       }
-      if (profileData?.walletaddress === activeWalletAddress?.value) {
+      if (profileData?.walletaddress?.toLowerCase() === activeWalletAddress?.value.toLowerCase()) {
         const renewalUser: any = {
           wallet: {
             address: activeWalletAddress?.value
           }
         }
+        console.log('renewing session for: ', profileData?.walletaddress);
         await login(renewalUser);
       }
       const renewalUser: any = {
         wallet: {
-          address: activeWalletAddress?.value
+          address: profileData?.walletaddress
         }
       }
       await login(renewalUser);
     } else {
       // if no session is returned, make sure they are logged out fully.
+      console.log('logging out due to no session');
       await logout();
     }
   }
+  console.log('session created/found: ', session);
   return session[0];
 }
 
@@ -123,6 +128,7 @@ async function isMemberOfSessionAction(consensusSessionId: number): Promise<bool
 }
 
 export async function login(user: User) {
+  console.log('logging in: ', user.wallet?.address || 'no address');
   const accessToken = cookies().get('privy-token');
   if (!accessToken?.value) {
     return null;
@@ -145,6 +151,7 @@ export async function login(user: User) {
       const ipAddress = (headers().get('x-forwarded-for') ?? '127.0.0.1').split(',')[0];
       const accountIdResp = await createUserAccountIfNotExists(user);
       if (accountIdResp === null || accountIdResp.length === 0) {
+        console.log('no account id found, could not create..');
         return null;
       } else {
         // create privy map and update user table with mapid
@@ -152,6 +159,7 @@ export async function login(user: User) {
       }
       const validSession = await getBeUserSession(ipAddress, jwt?.value, user.wallet?.address);
       if (validSession?.length === 0) {
+        console.log('creating be session for: ', user.wallet?.address);
         await createBeUserSession({
           sessionid: undefined,
           userid: accountIdResp?.[0]?.id || 0,
@@ -199,6 +207,7 @@ export async function isLoggedInAction(address: string): Promise<boolean> {
 }
 
 export async function logout() {
+  console.log('logging out');
   await checkAccessToken();
   const activeWalletAddress = cookies().get('activeWalletAddress');
   if (activeWalletAddress?.value) {
