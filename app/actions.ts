@@ -53,23 +53,6 @@ export type AuthenticationErrorResponse = {
   error: string;
 };
 
-/*********** THIRDWEB AUTHENTICATION ***********/
-// Checking JWT should be sufficient for most cases to verify that Client Server tampering is not happening
-// https://medium.com/swlh/hacking-json-web-tokens-jwts-9122efe91e4a
-// const privateKey = process.env.THIRDWEB_ADMIN_PRIVATE_KEY || '';
-
-// if (!privateKey) {
-//   throw new Error('Missing THIRDWEB_ADMIN_PRIVATE_KEY in .env file.');
-// }
-// FE https://docs.privy.io/guide/react/authorization
-// BE https://docs.privy.io/guide/server/authorization/verification
-
-// const thirdwebAuth = createAuth({
-//   domain: process.env.NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN || '',
-//   adminAccount: privateKeyAccount({ client, privateKey }),
-//   client: client
-// });
-
 async function checkAccessToken() {
   const accessToken = cookies().get('privy-token');
   if (!accessToken?.value) {
@@ -261,8 +244,6 @@ export async function updateUserProfileAction(user: Partial<RespectUser>): Promi
 }
 
 // TODO - set up hats protocol
-// https://portal.thirdweb.com/references/typescript/v5/useWalletBalance
-// https://app.hatsprotocol.xyz/trees/10/175?hatId=175.1.1.2
 // check if the balance on the hats contract 0x3bc1A0Ad72417f2d411118085256fC53CBdDd137
 // for the fractalgram cert 0x000000af00010001000200000000000000000000000000000000000000000000 is greater than 0
 export async function isLoggedInUserAdmin(): Promise<boolean> {

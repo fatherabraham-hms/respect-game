@@ -3,8 +3,6 @@ import { getConsensusSessionWinnersAction } from '@/app/actions';
 import { useEffect, useState } from 'react';
 import { ConsensusWinnerModel } from '@/lib/models/consensus-winner.model';
 import { Button } from '@/components/ui/button';
-import { getContract } from 'thirdweb';
-import { sepolia } from 'thirdweb/chains';
 
 export default function IndexPage({ params }: { params: { sessionid: string } }) {
   // const wallet = useActiveWallet();
