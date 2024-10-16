@@ -69,17 +69,25 @@ async function checkAccessToken() {
 async function isAuthorized() {
   console.log('checking BE auth');
   const claims = await checkAccessToken();
-  const jwt = cookies().get('authjs.csrf-token');
+  const privyUserId = { value: claims?.userId };
   const activeWalletAddress = cookies().get('activeWalletAddress');
   const ipaddress = (headers().get('x-forwarded-for') ?? '127.0.0.1').split(',')[0];
-  if (activeWalletAddress?.value && (!jwt?.value || !ipaddress)) {
+  if (activeWalletAddress?.value && (!privyUserId?.value || !ipaddress)) {
     await logout();
   }
-  if (!ipaddress || !activeWalletAddress?.value || !jwt?.value) {
-    console.log('no ipaddress, wallet, or jwt found');
+  if (!ipaddress || !activeWalletAddress?.value || !privyUserId?.value) {
+    if (!ipaddress) {
+      console.log('no ip address found');
+    }
+    if (!activeWalletAddress?.value) {
+      console.log('no active wallet address found');
+    }
+    if (!privyUserId?.value) {
+      console.log('no privyUserId found');
+    }
     redirect('/');
   }
-  const session = await getBeUserSession(ipaddress, activeWalletAddress.value, jwt?.value || '');
+  const session = await getBeUserSession(ipaddress, activeWalletAddress.value, privyUserId?.value || '');
 
   if (!session || session.length === 0) {
     // if their backend session is not found, but they are authorized, create a new session
@@ -142,10 +150,6 @@ export async function login(user: User) {
   }
 
   if (verifiedClaims) {
-    const jwt = cookies().get('authjs.csrf-token');
-    if (!jwt?.value) {
-      return null;
-    }
     if (user && user.wallet?.address) {
       cookies().set('activeWalletAddress', user.wallet?.address);
       const ipAddress = (headers().get('x-forwarded-for') ?? '127.0.0.1').split(',')[0];
@@ -157,7 +161,7 @@ export async function login(user: User) {
         // create privy map and update user table with mapid
         await createPrivyMap(verifiedClaims, accountIdResp[0].id);
       }
-      const validSession = await getBeUserSession(ipAddress, jwt?.value, user.wallet?.address);
+      const validSession = await getBeUserSession(ipAddress, verifiedClaims.userId, user.wallet?.address);
       if (validSession?.length === 0) {
         console.log('creating be session for: ', user.wallet?.address);
         await createBeUserSession({
@@ -165,7 +169,7 @@ export async function login(user: User) {
           userid: accountIdResp?.[0]?.id || 0,
           ipaddress: ipAddress,
           walletaddress: user.wallet?.address,
-          jwt: jwt.value,
+          jwt: verifiedClaims.userId,
           externalsessionid: verifiedClaims.sessionId,
           jsondata: '',
           expires: new Date(),

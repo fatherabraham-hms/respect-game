@@ -76,7 +76,6 @@ module.exports = () => {
       ...nextConfig.images,
       domains: ['respect-game.vercel.app'],
     },
-    productionBrowserSourceMaps: true,
     async headers() {
       return [
         {
