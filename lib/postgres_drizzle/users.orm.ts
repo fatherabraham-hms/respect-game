@@ -10,5 +10,6 @@ export const UsersPgTable = pgTable('users', {
   walletaddress: varchar('walletaddress', { length: 50 }),
   loggedin: boolean('loggedin'),
   lastlogin: timestamp('lastlogin').notNull().default(sql`now()`),
-  permissions: integer('permissions')
+  permissions: integer('permissions'),
+  privymapid: integer('privymapid'),
 });

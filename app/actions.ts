@@ -23,13 +23,13 @@ import {
   setSessionStatus,
   getConsensusSession,
   getConsensusWinnersRankingsAndWalletAddresses,
-  getRecentSessionsForUserWalletAddress
+  getRecentSessionsForUserWalletAddress,
+  createPrivyMap
 } from '@/lib/db';
-import { VerifyLoginPayloadParams, createAuth } from 'thirdweb/auth';
-import { privateKeyAccount } from 'thirdweb/wallets';
-import { client } from '@/lib/client';
+import { User } from '@privy-io/server-auth';
+import { PrivyClient, AuthTokenClaims } from "@privy-io/server-auth";
 import { cookies, headers } from 'next/headers';
-import { User } from '@/lib/dtos/user.dto';
+import { RespectUser } from '@/lib/dtos/respect-user.dto';
 import { ConsensusSessionDto } from '@/lib/dtos/consensus-session.dto';
 import { ConsensusSessionSetupModel, Vote } from '@/lib/models/consensus-session-setup.model';
 import { CONSENSUS_LIMIT } from '../data/constants/app_constants';
@@ -40,49 +40,74 @@ if (process.env.NODE_ENV === 'development') {
   isDevEnv = true;
 }
 
-/*********** THIRDWEB AUTHENTICATION ***********/
-// Checking JWT should be sufficient for most cases to verify that Client Server tampering is not happening
-// https://medium.com/swlh/hacking-json-web-tokens-jwts-9122efe91e4a
-const privateKey = process.env.THIRDWEB_ADMIN_PRIVATE_KEY || '';
+/*********** PRIVY AUTHENTICATION ***********/
+const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
+const PRIVY_APP_SECRET = process.env.PRIVY_APP_SECRET;
+const privy = new PrivyClient(PRIVY_APP_ID!, PRIVY_APP_SECRET!);
 
-if (!privateKey) {
-  throw new Error('Missing THIRDWEB_ADMIN_PRIVATE_KEY in .env file.');
-}
+export type AuthenticateSuccessResponse = {
+  claims: AuthTokenClaims;
+};
 
-const thirdwebAuth = createAuth({
-  domain: process.env.NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN || '',
-  adminAccount: privateKeyAccount({ client, privateKey }),
-  client: client
-});
+export type AuthenticationErrorResponse = {
+  error: string;
+};
 
-async function checkJWT() {
-  const jwt = cookies().get('jwt');
-  if (!jwt?.value) {
+async function checkAccessToken() {
+  const accessToken = cookies().get('privy-token');
+  if (!accessToken?.value) {
     return null;
   }
-  const authResult = await thirdwebAuth.verifyJWT({ jwt: jwt.value });
-  if (!authResult.valid) {
+  const verifiedClaims = await privy.verifyAuthToken(accessToken.value);
+  if (!verifiedClaims) {
     return null;
+  } else {
+    return verifiedClaims;
   }
 }
 
 async function isAuthorized() {
-  await checkJWT();
-  const jwt = cookies().get('jwt');
+  const claims = await checkAccessToken();
+  const jwt = cookies().get('authjs.csrf-token');
   const activeWalletAddress = cookies().get('activeWalletAddress');
   const ipaddress = (headers().get('x-forwarded-for') ?? '127.0.0.1').split(',')[0];
   if (activeWalletAddress?.value && (!jwt?.value || !ipaddress)) {
     await logout();
-    redirect('/');
   }
   if (!ipaddress || !activeWalletAddress?.value || !jwt?.value) {
     redirect('/');
   }
   const session = await getBeUserSession(ipaddress, activeWalletAddress.value, jwt?.value || '');
-  // if no session is returned, make sure they are logged out fully.
+
   if (!session || session.length === 0) {
-    await logout();
-    redirect('/');
+    // if their backend session is not found, but they are authorized, create a new session
+    // TODO check if the claim is expired
+    if (claims?.appId === process.env.NEXT_PUBLIC_PRIVY_APP_ID
+        && claims?.issuer === 'privy.io'
+        && activeWalletAddress?.value?.length > 8) {
+      const profile = await getUserProfileByWalletAddress(activeWalletAddress?.value);
+      let profileData: Partial<RespectUser> | null = null;
+      if (Array.isArray(profile) && profile.length > 0) {
+        profileData = profile[0] as RespectUser;
+      }
+      if (profileData?.walletaddress === activeWalletAddress?.value) {
+        const renewalUser: any = {
+          wallet: {
+            address: activeWalletAddress?.value
+          }
+        }
+        await login(renewalUser);
+      }
+      const renewalUser: any = {
+        wallet: {
+          address: activeWalletAddress?.value
+        }
+      }
+      await login(renewalUser);
+    } else {
+      // if no session is returned, make sure they are logged out fully.
+      await logout();
+    }
   }
   return session[0];
 }
@@ -97,62 +122,67 @@ async function isMemberOfSessionAction(consensusSessionId: number): Promise<bool
   return isAdmin || isMember?.length === 1;
 }
 
-export async function generatePayload(param: { address: string, chainId: number }) {
-  param.chainId = 1;
-  return await thirdwebAuth.generatePayload(param);
-}
+export async function login(user: User) {
+  const accessToken = cookies().get('privy-token');
+  if (!accessToken?.value) {
+    return null;
+  }
+  let verifiedClaims: AuthTokenClaims | null = null;
+  try {
+    verifiedClaims = await privy.verifyAuthToken(accessToken.value);
+  } catch (error) {
+    console.log(`Token verification failed with error ${error}.`);
+    return null;
+  }
 
-export async function login(payload: VerifyLoginPayloadParams) {
-  const verifiedPayload = await thirdwebAuth.verifyPayload(payload);
-  if (verifiedPayload.valid) {
-    const jwt = await thirdwebAuth.generateJWT({
-      payload: verifiedPayload.payload
-    });
-    cookies().set('jwt', jwt, { secure: !isDevEnv, expires: Date.now() + 1000 * 60 * 60 * 24 * 7 });
-    if (verifiedPayload?.payload?.address) {
-      cookies().set('activeWalletAddress', verifiedPayload?.payload?.address, {
-        secure: !isDevEnv,
-        expires: Date.now() + 1000 * 60 * 60 * 24 * 7
-      });
+  if (verifiedClaims) {
+    const jwt = cookies().get('authjs.csrf-token');
+    if (!jwt?.value) {
+      return null;
+    }
+    if (user && user.wallet?.address) {
+      cookies().set('activeWalletAddress', user.wallet?.address);
       const ipAddress = (headers().get('x-forwarded-for') ?? '127.0.0.1').split(',')[0];
-      const accountIdResp = await createUserAccountIfNotExists(verifiedPayload.payload.address);
+      const accountIdResp = await createUserAccountIfNotExists(user);
       if (accountIdResp === null || accountIdResp.length === 0) {
         return null;
+      } else {
+        // create privy map and update user table with mapid
+        await createPrivyMap(verifiedClaims, accountIdResp[0].id);
       }
-      const validSession = await getBeUserSession(ipAddress, jwt, verifiedPayload?.payload?.address);
+      const validSession = await getBeUserSession(ipAddress, jwt?.value, user.wallet?.address);
       if (validSession?.length === 0) {
         await createBeUserSession({
           sessionid: undefined,
           userid: accountIdResp?.[0]?.id || 0,
           ipaddress: ipAddress,
-          walletaddress: verifiedPayload.payload.address,
-          jwt: jwt,
+          walletaddress: user.wallet?.address,
+          jwt: jwt.value,
+          externalsessionid: verifiedClaims.sessionId,
           jsondata: '',
           expires: new Date(),
           created: new Date(),
           updated: new Date()
         });
       }
-      await setUserLoginStatusById(verifiedPayload.payload.address, true);
-      return verifiedPayload.payload.address;
+      await setUserLoginStatusById(user.wallet?.address, true);
+      return user.wallet?.address;
     }
   }
 }
 
 /**
  * Caution - this method must remain private so it does not expose the userid
- * @param address
+ * @param user
  */
-async function createUserAccountIfNotExists(address: string): Promise<{id: number}[] | null> {
+async function createUserAccountIfNotExists(user: User): Promise<{id: number}[] | null> {
+  const address = user.wallet?.address;
+  if (!address) {
+    return null;
+  }
   const useridResp = await getUserIdByWalletAddress(address);
   if (!useridResp || useridResp.length === 0) {
-    await createUserProfile({
-      walletaddress: address,
-      name: undefined,
-      username: undefined,
-      email: '',
-      telegram: ''
-    });
+    await createUserProfile(user);
   } else if (useridResp && useridResp.length > 0 && typeof useridResp[0].id === 'number') {
     return useridResp;
   }
@@ -169,20 +199,21 @@ export async function isLoggedInAction(address: string): Promise<boolean> {
 }
 
 export async function logout() {
-  await checkJWT();
+  await checkAccessToken();
   const activeWalletAddress = cookies().get('activeWalletAddress');
   if (activeWalletAddress?.value) {
     await setUserLoginStatusById(activeWalletAddress?.value, false);
   }
-  // TODO invalidate session
-  // cookies().delete('activeWalletAddress');
-  // cookies().delete('jwt');
+  cookies().delete('activeWalletAddress');
+  cookies().delete('privy-token');
+  cookies().delete('authjs.csrf-token');
+  redirect('/');
 }
 
 /*********** USERS ***********/
 
 export async function getUsers(query: string = '', offset: number = 0) {
-  await checkJWT();
+  await checkAccessToken();
   const result = await getAllUsers(query, offset);
   if (result) {
     result?.users.forEach((user: Partial<SelectUser>) => {
@@ -194,35 +225,32 @@ export async function getUsers(query: string = '', offset: number = 0) {
   });
 }
 
-export async function getUserProfile(address: string): Promise<Partial<User> | null> {
-  await checkJWT();
+export async function getUserProfile(address: string): Promise<Partial<RespectUser> | null> {
+  await checkAccessToken();
   const profile = await getUserProfileByWalletAddress(address);
-  let profileData: Partial<User> | null = null;
+  let profileData: Partial<RespectUser> | null = null;
   if (Array.isArray(profile) && profile.length > 0) {
-    // @ts-ignore
-    profileData = profile[0];
+    profileData = profile[0] as RespectUser;
   }
   return new Promise((resolve) => {
     resolve(profileData);
   });
 }
 
-export async function updateUserProfileAction(user: Partial<User>): Promise<Partial<User> | { message: string }> {
-  await checkJWT();
+export async function updateUserProfileAction(user: Partial<RespectUser>): Promise<Partial<RespectUser> | { message: string }> {
+  await checkAccessToken();
   const result = await updateUserProfile(user);
-  return result as Partial<User> | { message: string };
+  return result as Partial<RespectUser> | { message: string };
 }
 
 // TODO - set up hats protocol
-// https://portal.thirdweb.com/references/typescript/v5/useWalletBalance
-// https://app.hatsprotocol.xyz/trees/10/175?hatId=175.1.1.2
 // check if the balance on the hats contract 0x3bc1A0Ad72417f2d411118085256fC53CBdDd137
 // for the fractalgram cert 0x000000af00010001000200000000000000000000000000000000000000000000 is greater than 0
 export async function isLoggedInUserAdmin(): Promise<boolean> {
   const admins = process.env.RESPECT_GAME_ADMINS?.split(',') || [];
   const session = await isAuthorized();
   if (session) {
-    return admins?.some((addr) => addr === session?.walletaddress);
+    return admins?.some((addr) => addr.toLowerCase() === session?.walletaddress?.toLowerCase());
   }
   return false;
 }
@@ -241,7 +269,7 @@ const defaultConsensusSession: ConsensusSessionDto = {
 };
 
 export async function createConsensusSessionAndUserGroupAction(groupAddresses: string[]) {
-  await checkJWT();
+  await checkAccessToken();
   const session: ConsensusSessionDto = defaultConsensusSession;
   // TODO - check incoming session if updated
   if (Object?.keys(session)?.length === 0) {
@@ -276,7 +304,7 @@ export async function getConsensusSetupAction(consensusSessionId: number): Promi
   if (consensusSessionId <= 0) {
     throw new Error('Invalid session id');
   }
-  await checkJWT();
+  await checkAccessToken();
   const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
   if (!isMemberofSession) {
     throw new Error('Not a member of session');
@@ -294,7 +322,7 @@ export async function getConsensusSetupAction(consensusSessionId: number): Promi
 
   const groupMembers = await getRemainingVoteCandidatesForSession(consensusSessionId);
   if (groupMembers && groupMembers.length > 0) {
-    consensusSessionSetup.attendees = [...groupMembers as User[]];
+    consensusSessionSetup.attendees = [...groupMembers as RespectUser[]];
   }
   return consensusSessionSetup;
 }
@@ -346,7 +374,7 @@ export async function setSingleVoteAction(
 }
 
 export async function getCurrentVotesForSessionByRankingAction(consensusSessionId: number, ranking: number) {
-  await checkJWT();
+  await checkAccessToken();
   const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
   if (!isMemberofSession) {
     throw new Error('Not a member of session');

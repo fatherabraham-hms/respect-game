@@ -1,6 +1,6 @@
 'use client';
 
-import { User } from '@/lib/dtos/user.dto';
+import { RespectUser } from '@/lib/dtos/respect-user.dto';
 import { useEffect, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { ConsensusSessionSetupModel, Vote } from '@/lib/models/consensus-session-setup.model';
@@ -16,6 +16,7 @@ import {
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
+import { VOTING_ROUND_POLLING_INTERVAL } from '../data/constants/app_constants';
 
 // TODO: https://tailwindcomponents.com/component/radio-buttons
 
@@ -82,7 +83,7 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
     });
     fetchCurrentVotingInfo().then();
 
-    const interval = setInterval(fetchCurrentVotingInfo, 5000);
+    const interval = setInterval(fetchCurrentVotingInfo, VOTING_ROUND_POLLING_INTERVAL);
 
     return () => clearInterval(interval);
   }, []);
@@ -95,13 +96,13 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
     if (!walletAddress || !attestation) {
       return;
     }
-    const user = rankingConfig.attendees.find((user: User) => user.walletaddress === walletAddress);
+    const user = rankingConfig.attendees.find((user: RespectUser) => user.walletaddress === walletAddress);
     if (user && rankingConfig.rankingScheme === 'numeric-descending') {
       handleNumericVote(user);
     }
   }
 
-  function handleNumericVote(user: User) {
+  function handleNumericVote(user: RespectUser) {
     if (!user || !currentRankNumber) {
       return;
     }
@@ -144,7 +145,7 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
     ).catch(() => toast.error('Oops! An error occured, please try again!'));
   }
 
-  const calculateRankingPercentageForCandidate = (user: User) => {
+  const calculateRankingPercentageForCandidate = (user: RespectUser) => {
     const totalVotes = votingRound.reduce((acc, ranking) => acc + ranking.count, 0);
     const candidateSupportVotes = votingRound.find((ranking) => ranking.walletaddress === user.walletaddress)?.count || 0;
     return Math.round(((candidateSupportVotes / totalVotes) || 0) * 100);
@@ -165,7 +166,7 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
         className="text-sm text-gray-500 dark:text-gray-400">{rankingConfig.rankingScheme === 'numeric-descending' ? '6 is highest' : '1 is highest'}</span>
       <br />
       <form className="border shadow-sm rounded-lg">
-        {rankingConfig?.attendees?.map((user: User) => (
+        {rankingConfig?.attendees?.map((user: RespectUser) => (
           <div key={user.walletaddress} className={'flex items-center'}>
             <div className={'flex-grow-0 p-4'}>
               <input type={'radio'} name={'rankings'} value={'upvote'}
