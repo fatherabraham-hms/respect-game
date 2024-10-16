@@ -7,7 +7,6 @@ Stack:
 - Node.js - [Node.js 20.9.0+](https://nodejs.org/)
 - Framework - [Next.js 14](https://nextjs.org/)
 - Language - [TypeScript](https://www.typescriptlang.org)
-- Thirdweb - [Connect](https://thirdweb.com/connect)
 - Database - [Postgres](https://vercel.com/postgres)
 - ORM - [Drizzle](https://orm.drizzle.team/)
 - Deployment - [Vercel](https://vercel.com/docs/concepts/next.js/overview)

@@ -8,6 +8,7 @@ export const User_be_sessionsOrm = pgTable('user_be_sessions', {
   ipaddress: inet('ipaddress'),
   walletaddress: varchar('walletaddress', { length: 50 }),
   jwt: varchar('jwt', { length: 50 }),
+  externalsessionid: varchar('externalsessionid', { length: 50 }),
   jsondata: json('jsondata'),
   expires: timestamp('expires', { mode: 'date' }).notNull(),
   created: timestamp('created', { mode: 'date' }).notNull(),

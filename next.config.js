@@ -1,15 +1,15 @@
 /** @type {import('next').NextConfig} */
 // You might need to insert additional domains in script-src if you are using external services
 const ContentSecurityPolicy = `
-  default-src 'self' *.thirdweb.com va.vercel-scripts.com;
-  script-src 'self' 'unsafe-eval' 'unsafe-inline' *.thirdweb.com va.vercel-scripts.com;
-  child-src 'self' *.thirdweb.com *.walletconnect.com;
+  default-src 'self' *.privy.io va.vercel-scripts.com;
+  script-src 'self' 'unsafe-eval' 'unsafe-inline' *.privy.io va.vercel-scripts.com;
+  child-src 'self' *.privy.io *.walletconnect.com;
   style-src 'self' 'unsafe-inline';
-  img-src 'self' blob: data: localhost:3000;
-  media-src 'self' *.s3.amazonaws.com *.thirdweb.com;
+  img-src 'self' blob: data: localhost:3000 explorer-api.walletconnect.com;
+  media-src 'self' *.s3.amazonaws.com *.privy.io;
   connect-src *;
-  font-src 'self' *.thirdweb.com;
-  worker-src * blob: ws: *.thirdweb.com;
+  font-src 'self' *.privy.io;
+  worker-src * blob: ws: *.privy.io;
 `
 
 const securityHeaders = [

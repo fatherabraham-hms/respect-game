@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { User } from '@/lib/dtos/user.dto';
+import { RespectUser } from '@/lib/dtos/respect-user.dto';
 import { useEffect, useState } from 'react';
 import { createConsensusSessionAndUserGroupAction, getUsers } from '@/app/actions';
 import toast from 'react-hot-toast';
@@ -20,7 +20,7 @@ import { Badge } from '@/components/ui/badge';
 
 export function UsersTable() {
   const router = useRouter();
-  const [users, setUsers] = useState<Partial<User[]>>([]);
+  const [users, setUsers] = useState<Partial<RespectUser[]>>([]);
   const [query, setQuery] = useState('');
   const [groupAddresses, setGroupAddresses] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,8 +29,8 @@ export function UsersTable() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const result: Partial<User[]> | unknown = await getUsers(query, offset);
-        const users = result as Partial<User[]>;
+        const result: Partial<RespectUser[]> | unknown = await getUsers(query, offset);
+        const users = result as Partial<RespectUser[]>;
         setUsers(users || []);
       } catch (error) {
         toast.error('Could not fetch Users!');
@@ -74,6 +74,7 @@ export function UsersTable() {
               <TableHead className="max-w-[50px]"></TableHead>
               <TableHead className="max-w-[150px]">Name</TableHead>
               <TableHead className="hidden md:table-cell">Email</TableHead>
+              <TableHead className="hidden md:table-cell">Wallet Address</TableHead>
               <TableHead className="hidden md:table-cell">Username</TableHead>
               <TableHead className="hidden md:table-cell">Logged In</TableHead>
             </TableRow>
@@ -91,7 +92,7 @@ export function UsersTable() {
 }
 
 function UserRow({ user, groupAddresses, setGroupAddresses }: {
-  user: User,
+  user: RespectUser,
   groupAddresses: string[],
   setGroupAddresses: any
 }) {
@@ -113,6 +114,7 @@ function UserRow({ user, groupAddresses, setGroupAddresses }: {
       </TableCell>
       <TableCell className="font-medium">{user.name}</TableCell>
       <TableCell className="hidden md:table-cell">{user.email}</TableCell>
+      <TableCell className="font-medium">{user.walletaddress}</TableCell>
       <TableCell>{user.username}</TableCell>
       <TableCell>
         {
