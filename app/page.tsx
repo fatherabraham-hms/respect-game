@@ -3,7 +3,7 @@ import { UserPill } from '@privy-io/react-auth/ui';
 import Link from 'next/link';
 import { Logo } from '@/components/icons';
 import { NavSidebar } from '@/components/app-shell/nav-sidebar';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy } from '@privy-io/react-auth';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UsersTable } from '@/app/users-table';
@@ -27,7 +27,7 @@ export default function IndexPage() {
     if (ready && !authenticated) {
       router.push('/login');
     }
-    if (ready && authenticated && user?.wallet?.address) {
+    if (ready && authenticated && user?.wallet?.address && user.wallet.address.length > 8) {
       Cookies.set('activeWalletAddress', user?.wallet?.address, { expires: 1 });
       fetchBackendAuthContext();
     }
@@ -63,7 +63,11 @@ export default function IndexPage() {
     return null;
   }
 
-  return (
+  function shouldRender() {
+    return ready && authenticated && user?.wallet?.address && user.wallet.address.length > 8;
+  }
+
+  return ( shouldRender() &&
     <AuthContext.Provider value={{ ...authContext, setAuthContext }}>
       <main className="flex flex-1 flex-col">
         <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
