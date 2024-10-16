@@ -16,6 +16,7 @@ import {
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
+import { VOTING_ROUND_POLLING_INTERVAL } from '../data/constants/app_constants';
 
 // TODO: https://tailwindcomponents.com/component/radio-buttons
 
@@ -82,7 +83,7 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
     });
     fetchCurrentVotingInfo().then();
 
-    const interval = setInterval(fetchCurrentVotingInfo, 5000);
+    const interval = setInterval(fetchCurrentVotingInfo, VOTING_ROUND_POLLING_INTERVAL);
 
     return () => clearInterval(interval);
   }, []);

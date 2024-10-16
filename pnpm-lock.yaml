@@ -53,6 +53,9 @@ dependencies:
   drizzle-orm:
     specifier: ^0.30.10
     version: 0.30.10(@neondatabase/serverless@0.9.3)(@types/react@18.3.2)(postgres@3.4.4)(react@18.3.1)
+  js-cookie:
+    specifier: ^3.0.5
+    version: 3.0.5
   lucide-react:
     specifier: ^0.378.0
     version: 0.378.0(react@18.3.1)
@@ -130,6 +133,9 @@ devDependencies:
   '@jest/globals':
     specifier: ^29.7.0
     version: 29.7.0
+  '@types/js-cookie':
+    specifier: ^3.0.6
+    version: 3.0.6
   '@types/ws':
     specifier: ^8.5.12
     version: 8.5.12
@@ -3641,6 +3647,10 @@ packages:
       expect: 29.7.0
       pretty-format: 29.7.0
     dev: false
+
+  /@types/js-cookie@3.0.6:
+    resolution: {integrity: sha512-wkw9yd1kEXOPnvEeEV1Go1MmxtBJL0RR79aOTAApecWFVu7w0NNXNqhcWgvw2YgZDYadliXkl14pa3WXw5jlCQ==}
+    dev: true
 
   /@types/ms@0.7.34:
     resolution: {integrity: sha512-nG96G3Wp6acyAgJqGasjODb+acrI7KltPiRxzHPXnP3NgI28bpQDRv53olbqGXbfcgF5aiiHmO3xpwEpS5Ld9g==}

@@ -189,7 +189,8 @@ export async function getUserProfileByWalletAddress(walletAddress: string) {
     walletaddress: users.walletaddress,
     loggedin: users.loggedin,
     lastlogin: users.lastlogin,
-    permissions: users.permissions
+    permissions: users.permissions,
+    telegram: users.telegram
   }).from(users).limit(1).where(eq(users.walletaddress, walletAddress));
 }
 

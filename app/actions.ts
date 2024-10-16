@@ -78,11 +78,13 @@ async function checkAccessToken() {
   const verifiedClaims = await privy.verifyAuthToken(accessToken.value);
   if (!verifiedClaims) {
     return null;
+  } else {
+    return verifiedClaims;
   }
 }
 
 async function isAuthorized() {
-  await checkAccessToken();
+  const claims = await checkAccessToken();
   const jwt = cookies().get('authjs.csrf-token');
   const activeWalletAddress = cookies().get('activeWalletAddress');
   const ipaddress = (headers().get('x-forwarded-for') ?? '127.0.0.1').split(',')[0];
@@ -93,9 +95,36 @@ async function isAuthorized() {
     redirect('/');
   }
   const session = await getBeUserSession(ipaddress, activeWalletAddress.value, jwt?.value || '');
-  // if no session is returned, make sure they are logged out fully.
+
   if (!session || session.length === 0) {
-    await logout();
+    // if their backend session is not found, but they are authorized, create a new session
+    // TODO check if the claim is expired
+    if (claims?.appId === process.env.NEXT_PUBLIC_PRIVY_APP_ID
+        && claims?.issuer === 'privy.io'
+        && activeWalletAddress?.value?.length > 8) {
+      const profile = await getUserProfileByWalletAddress(activeWalletAddress?.value);
+      let profileData: Partial<RespectUser> | null = null;
+      if (Array.isArray(profile) && profile.length > 0) {
+        profileData = profile[0] as RespectUser;
+      }
+      if (profileData?.walletaddress === activeWalletAddress?.value) {
+        const renewalUser: any = {
+          wallet: {
+            address: activeWalletAddress?.value
+          }
+        }
+        await login(renewalUser);
+      }
+      const renewalUser: any = {
+        wallet: {
+          address: activeWalletAddress?.value
+        }
+      }
+      await login(renewalUser);
+    } else {
+      // if no session is returned, make sure they are logged out fully.
+      await logout();
+    }
   }
   return session[0];
 }
@@ -218,8 +247,7 @@ export async function getUserProfile(address: string): Promise<Partial<RespectUs
   const profile = await getUserProfileByWalletAddress(address);
   let profileData: Partial<RespectUser> | null = null;
   if (Array.isArray(profile) && profile.length > 0) {
-    // @ts-ignore
-    profileData = profile[0];
+    profileData = profile[0] as RespectUser;
   }
   return new Promise((resolve) => {
     resolve(profileData);

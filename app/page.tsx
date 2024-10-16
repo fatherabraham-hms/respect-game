@@ -3,7 +3,7 @@ import { UserPill } from '@privy-io/react-auth/ui';
 import Link from 'next/link';
 import { Logo } from '@/components/icons';
 import { NavSidebar } from '@/components/app-shell/nav-sidebar';
-import { ConnectedWallet, usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UsersTable } from '@/app/users-table';
@@ -11,11 +11,11 @@ import { getUserProfile, isLoggedInUserAdmin } from '@/app/actions';
 import { AuthContext } from 'data/context/Contexts';
 import { SessionList } from '@/components/sessions-list/session-list';
 import { Signup } from '@/components/signup/signup';
+import Cookies from 'js-cookie';
 
 export default function IndexPage() {
   const router = useRouter();
-  const { ready, authenticated, user, connectWallet } = usePrivy();
-  const { wallets } = useWallets();
+  const { ready, authenticated, user } = usePrivy();
   const [authContext, setAuthContext] = useState({
     isLoggedIn: false,
     isAdmin: false,
@@ -23,18 +23,15 @@ export default function IndexPage() {
   });
   const [loading, setLoading] = useState(true);
 
-  function detaultToNonCustodialWallet() {
-    if (wallets && wallets.length > 0) {
-      const nonCustodialWallets: ConnectedWallet[] | undefined = wallets.filter(
-        (wallet: ConnectedWallet) => !(wallet.walletClientType === 'privy')
-      );
-      if (nonCustodialWallets.length > 0) {
-        connectWallet({
-          suggestedAddress: nonCustodialWallets[0].address
-        });
-      }
+  useEffect(() => {
+    if (ready && !authenticated) {
+      router.push('/login');
     }
-  }
+    if (ready && authenticated && user?.wallet?.address) {
+      Cookies.set('activeWalletAddress', user?.wallet?.address, { expires: 1 });
+      fetchBackendAuthContext();
+    }
+  }, [ready, authenticated, router]);
 
   function fetchBackendAuthContext() {
     if (ready && authenticated && user?.wallet && user.wallet.address) {
@@ -49,13 +46,6 @@ export default function IndexPage() {
         });
     }
   }
-
-  useEffect(() => {
-    if (ready && !authenticated) {
-      router.push('/login');
-    }
-    fetchBackendAuthContext();
-  }, [ready, authenticated, router]);
 
   function renderContent() {
     if (loading) {
