@@ -1,9 +1,14 @@
 'use client';
 
 import { usePrivy } from '@privy-io/react-auth';
+import { useRouter } from 'next/navigation';
 
 export function Login() {
-  const { login } = usePrivy();
+  const { login, ready, authenticated } = usePrivy();
+  const router = useRouter();
+  if (ready && authenticated) {
+    router.push('/');
+  }
   return (
     <div
       className="absolute top-0 left-0 h-[100%] w-[100%] bg-[url('/static/images/fractalgram-bg.png')] bg-cover bg-center flex flex-col gap-[50px] items-center justify-center">

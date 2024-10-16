@@ -331,39 +331,7 @@ export type ConsensusGroupsDbDto = typeof consensusGroups.$inferSelect;
 
 // TODO when do we inactivate a group? cron job?
 export async function createConsensusGroup(consensusSessionId: number, groupAddresses: string[], userid: number) {
-console.log('createConsensusGroup');
-  // create a transaction that inserts a row into consensus_groups and then inserts a row into consensus_group_members for each group member
-//   await db.transaction(async (trx) => {
-//     const groupInsert = trx.insert(consensusGroups).values({
-//       sessionid: consensusSessionId,
-//       groupstatus: 0,
-//       modifiedbyid: userid,
-//       created: new Date(),
-//       updated: new Date()
-//     }).returning({
-//       groupid: consensusGroups.groupid
-//     });
-//
-//     const group = await groupInsert;
-//     console.log('group', group);
-//
-//     // loop through the groupAddresses, and insert a consensusGroupMembers record for each one
-//     for (const address of groupAddresses) {
-//       const userIdResp = await trx.select({
-//         id: users.id
-//       }).from(users).where(eq(users.walletaddress, address));
-//       if (userIdResp && userIdResp.length === 0) {
-//         throw new Error('No user found');
-//       }
-//       await trx.insert(consensusGroupMembers).values({
-//         groupid: group[0].groupid as number,
-//         userid: userIdResp[0].id,
-//         created: new Date(),
-//         updated: new Date()
-//       });
-//     }
-//   });
-//   return true;
+// console.log('createConsensusGroup');
 
   const group = await db.insert(consensusGroups).values({
     sessionid: consensusSessionId,
@@ -399,7 +367,7 @@ console.log('createConsensusGroup');
 }
 
 export async function getActiveGroupIdBySessionId(consensusSessionId: number) {
-console.log('getActiveGroupIdBySessionId');
+// console.log('getActiveGroupIdBySessionId');
   if (consensusSessionId > 0) {
     return db.select({
       groupid: consensusGroups.groupid
@@ -411,7 +379,7 @@ console.log('getActiveGroupIdBySessionId');
 // TODO - make sure we exclude users who are already in a group from the list of users to add to a group
 // ************** ConsensusGroupsMembersPgTable ****************** //
 export async function getActiveGroupMembersByGroupId(groupId: number) {
-console.log('getActiveGroupMembersByGroupId');
+// console.log('getActiveGroupMembersByGroupId');
   // select all user records that are in the consensusGroupMembers table for the given groupId by joining the users table with the consensusGroupMembers table
   // rewrite query as drizzle-orm
   return db.select({
@@ -441,7 +409,7 @@ console.log('getActiveGroupMembersByGroupId');
  * @param input
  */
 export async function castSingleVoteForUser(input: ConsensusVotesDto) {
-console.log('castConsensusVoteForUser');
+// console.log('castConsensusVoteForUser');
   const voteIdResp = await db.select({
     voteid: consensusVotes.voteid
   }).from(consensusVotes)
@@ -479,7 +447,7 @@ export async function getCurrentVotesForSessionByRanking(
   sessionid: number,
   groupid: number,
   rankingValue: number): Promise<any> {
-  console.log('getCurrentVotesForSessionByRanking');
+  // console.log('getCurrentVotesForSessionByRanking');
 // TODO - add a way to check which vote belongs to current user?
   // need a way to re-check the radio if the user has already voted
   let select: any = {
@@ -514,7 +482,7 @@ export async function getCurrentVotesForSessionByRanking(
  * @param consensusSessionId
  */
 export async function getRemainingVoteCandidatesForSession(consensusSessionId: number) {
-console.log('getRemainingVoteCandidatesForSession');
+// console.log('getRemainingVoteCandidatesForSession');
   const existingConsensusResp = await db.select({ votedfor: consensusStatus.votedfor }).from(consensusStatus).where(
     eq(consensusStatus.sessionid, consensusSessionId));
 
@@ -551,13 +519,13 @@ console.log('getRemainingVoteCandidatesForSession');
     .where(where);
 
   const { sql, params } = query.toSQL();
-  console.log('SQL Query:', sql);
-  console.log('Parameters:', params);
+  // console.log('SQL Query:', sql);
+  // console.log('Parameters:', params);
   return query;
 }
 
 export async function getRankingsWithConsensusForSession(consensusSessionId: number, consensusSessionStatus: number, groupid: number) {
-  console.log('getExistingRankingValuesForSession');
+  // console.log('getExistingRankingValuesForSession');
   return db.selectDistinct({
     rankingvalue: consensusStatus.rankingvalue
   }).from(consensusStatus)
@@ -580,7 +548,7 @@ export async function setSingleRankingConsensus(
   votedFor: number,
   status: number,
   modifiedById: number) {
-  console.log('setSingleRankingConsensus');
+  // console.log('setSingleRankingConsensus');
   return db.insert(consensusStatus).values({
     consensusid: undefined,
     sessionid: sessionid,

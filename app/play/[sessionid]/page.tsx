@@ -13,6 +13,7 @@ export default function IndexPage({ params }: { params: { sessionid: string } })
     rankingScheme: 'numeric-descending',
     votes: []
   } as ConsensusSessionSetupModel | null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (params.sessionid.length > 0) {
@@ -20,21 +21,29 @@ export default function IndexPage({ params }: { params: { sessionid: string } })
       setConsensusSessionId(mySessionId);
       getConsensusSetupAction(mySessionId).then((consensusSessionSetup) => {
         setCurrentSessionSetup(consensusSessionSetup);
+        setLoading(false);
       });
     }
   }, []);
 
-  let visibleElements = (
-    <div className="flex items-center justify-center h-96">
-      <h1 className="font-semibold text-lg md:text-2xl">Sorry, this session has ended.</h1>
-    </div>);
+  let visibleElements = (<h1>Loading...</h1>);
 
   if (currentSessionSetup !== null && consensusSessionId > 0) {
-    visibleElements = <RankingSelector
-      consensusSessionId={consensusSessionId}
-      rankingConfig={currentSessionSetup}
-      setSession={setCurrentSessionSetup}
-    />
+    visibleElements = (
+      <RankingSelector
+        consensusSessionId={consensusSessionId}
+        rankingConfig={currentSessionSetup}
+        setSession={setCurrentSessionSetup}
+      />
+    );
+  } else if (currentSessionSetup === null && !loading) {
+    visibleElements = (
+      <div className="flex items-center justify-center h-96">
+        <h1 className="font-semibold text-lg md:text-2xl">
+          Sorry, this session has ended.
+        </h1>
+      </div>
+    );
   }
 
   return (
@@ -42,7 +51,7 @@ export default function IndexPage({ params }: { params: { sessionid: string } })
       <div className="flex items-center mb-8">
         <h1 className="font-semibold text-lg md:text-2xl">Cast your Vote</h1>
       </div>
-      { visibleElements }
+      {visibleElements}
     </main>
   );
 }
