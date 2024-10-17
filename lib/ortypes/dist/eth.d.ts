@@ -1,0 +1,26 @@
+import { z } from "zod";
+export declare const zTxHash: z.ZodString;
+export type TxHash = z.infer<typeof zTxHash>;
+export declare const zBytes: z.ZodEffects<z.ZodString, string, string>;
+export type Bytes = z.infer<typeof zBytes>;
+export declare const zBytes32: z.ZodEffects<z.ZodString, string, string>;
+export type Bytes32 = z.infer<typeof zBytes32>;
+export declare const zBytesLike: z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodType<Uint8Array, z.ZodTypeDef, Uint8Array>]>, string | Uint8Array, string | Uint8Array>;
+export declare const zBytesLikeToBytes: z.ZodPipeline<z.ZodEffects<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodType<Uint8Array, z.ZodTypeDef, Uint8Array>]>, string | Uint8Array, string | Uint8Array>, string, string | Uint8Array>, z.ZodEffects<z.ZodString, string, string>>;
+export declare const zEthAddress: z.ZodEffects<z.ZodString, string, string>;
+export type EthAddress = z.infer<typeof zEthAddress>;
+export type Account = EthAddress;
+export declare const EthZeroAddress: string;
+export declare function isEthAddr(val: any): val is EthAddress;
+export declare const zEthNonZeroAddress: z.ZodEffects<z.ZodEffects<z.ZodString, string, string>, string, string>;
+export declare const zEthZeroAddress: z.ZodEffects<z.ZodEffects<z.ZodString, string, string>, string, string>;
+export declare function isEthNonZeroAddr(val: any): boolean;
+export declare function isEthZeroAddr(val: any): boolean;
+export declare const zNonZeroBigInt: z.ZodUnion<[z.ZodBigInt, z.ZodBigInt]>;
+export declare const zNonZeroNumber: z.ZodUnion<[z.ZodNumber, z.ZodNumber]>;
+export declare const zBigNumberish: z.ZodBigInt;
+export declare const zUint: z.ZodBigInt;
+export declare const zUint8: z.ZodNumber;
+export declare const zBigNumberishToBigint: z.ZodPipeline<z.ZodEffects<z.ZodBigInt, bigint, bigint>, z.ZodBigInt>;
+export declare const zBigIntToBytes32: z.ZodPipeline<z.ZodEffects<z.ZodBigInt, string, bigint>, z.ZodEffects<z.ZodString, string, string>>;
+//# sourceMappingURL=eth.d.ts.map
