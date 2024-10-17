@@ -349,6 +349,23 @@ export async function getRecentSessionsForUserWalletAddressAction() {
 }
 /*********** CONSENSUS GROUPS ***********/
 
+export async function getActiveGroupIdBySessionIdAction(consensusSessionId: number) {
+  const beSession = await isAuthorized();
+  if (!beSession || !beSession.sessionid || !beSession.walletaddress || !beSession.userid) {
+    return null;
+  }
+  const isAdmin = await isLoggedInUserAdmin();
+  const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
+  if (!isAdmin && !isMemberofSession) {
+    throw new Error('Not a member of group');
+  }
+  const groupid = await getActiveGroupIdBySessionId(consensusSessionId);
+  if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
+    return null;
+  }
+  return groupid[0].groupid;
+}
+
 /*********** CONSENSUS GROUP MEMBERS ***********/
 
 /*********** CONSENSUS VOTES ***********/
