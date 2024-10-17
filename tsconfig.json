@@ -18,9 +18,7 @@
     "paths": {
       "@/components/*": ["components/*"],
       "@/lib/*": ["lib/*"],
-      "@/app/*": ["app/*"],
-      "orclient/*": ["lib/orclient/dist/*"],
-      "ortypes/*": ["lib/ortypes/dist/*"]
+      "@/app/*": ["app/*"]
     },
     "plugins": [
       {
