@@ -1,20 +1,27 @@
 'use client';
-import { getConsensusSessionWinnersAction } from '@/app/actions';
-import { useEffect, useState } from 'react';
+import { getActiveGroupIdBySessionIdAction, getConsensusSessionWinnersAction } from '@/app/actions';
+import { useEffect, useMemo, useState } from 'react';
 import { ConsensusWinnerModel } from '@/lib/models/consensus-winner.model';
 import { Button } from '@/components/ui/button';
+import { ConnectedWallet, usePrivy, useWallets } from '@privy-io/react-auth';
+import { createOrclient } from '@/lib/orclient/createOrclient';
+import { hexlify, randomBytes } from 'ethers';
+import { RespectBreakoutRequest } from '@/lib/ortypes/dist/orclient';
+import toast from 'react-hot-toast';
 
 export default function IndexPage({ params }: { params: { sessionid: string } }) {
-  // const wallet = useActiveWallet();
-  // const account = wallet?.getAccount();
   const [consensusRankings, setConsensusRankings] = useState<ConsensusWinnerModel[]>([]);
-
-  // const contact = getContract({
-  //   address: '',
-  //   chain: sepolia,
-  //   client: null
-  // });
-
+  const [orClient, setOrClient] = useState<any>(null);
+  const [groupId, setGroupId] = useState<number>(0);
+  const { ready, authenticated, user } = usePrivy();
+  const conWallets = useWallets();
+  const wallet = user?.wallet;
+// TODO: Is this the right way to select a wallet?
+  const userWallet: ConnectedWallet | undefined = useMemo(() =>{
+    if (conWallets) {
+      return conWallets.wallets.find(w => w.address === wallet?.address);
+    }
+  }, [wallet]);
 
 let warning = (
   <div className="flex items-center justify-center h-96">
@@ -24,24 +31,60 @@ let warning = (
 );
 
 useEffect(() => {
-  getConsensusSessionWinnersAction(parseInt(params.sessionid)).then((winnersResp) => {
+  const cleanSessionId = sanitizeSessionId(params.sessionid);
+  getActiveGroupIdBySessionIdAction(cleanSessionId).then((groupId) => {
+    if (groupId) {
+      setGroupId(groupId);
+    }
+  });
+  getConsensusSessionWinnersAction(cleanSessionId).then((winnersResp) => {
     if (winnersResp && winnersResp.length > 0) {
       const results = winnersResp as unknown as ConsensusWinnerModel[];
       setConsensusRankings(results);
     }
   });
+  if (ready && authenticated && orClient === null && userWallet) {
+    createOrclient(userWallet).then((client) => {
+      setOrClient(client);
+    });
+  }
 }, []);
 
-function pushOnChain() {
-  // if (account) {
-  //   const tx: SendTransactionOption = {
-  //     blobVersionedHashes: [],
-  //     blobs: undefined,
-  //     chainId: optimismSepolia.id
-  //   };
-  //   account.sendTransaction(tx);
-  // }
+async function pushOnChain() {
+    console.log("click");
+    if (ready && authenticated && orClient && consensusRankings.length > 0 && groupId > 0) {
+      // TODO: orclient should be created once in app or whenever a wallet changes,
+      // instead creating it on each click here
+      // Should probably create a react hook.
+      console.log("Creating ORClient");
+      console.log("Vote length (s): ", await orClient.getVoteLength());
+      console.log("Making a proposal");
+      // TODO: should only show completion to the user after this function completes
+      // After privy shows "all done" when using embeded wallet, it still has to make one request
+      // to store a proposal.
+      await orClient.proposeCustomSignal({
+        signalType: 1,
+        data: hexlify(randomBytes(2))
+      });
+      console.log("done");
+      const rankings = consensusRankings.map((winner) => winner.walletaddress);
+      // Example: breakout result submission
+      const req: RespectBreakoutRequest = {
+        groupNum: groupId,
+        meetingNum: sanitizeSessionId(params.sessionid),
+        rankings: rankings
+      }
+      await orClient.proposeBreakoutResult(req);
+      toast.success('Submitted successfully');
+    } else {
+      toast.error('Error submitting');
+    }
 }
+
+  function sanitizeSessionId(sessionid: string): number {
+    const clean = sessionid.replace(/[^0-9]/g, '');
+    return parseInt(clean);
+  }
 
   return (
     <main className="flex flex-1 flex-col p-4 md:p-6">
