@@ -1,8 +1,5 @@
 'use client'
-import { RemoteOrnode, ORClient } from "./dist/";
-import { BrowserProvider } from "ethers";
 import { ConnectedWallet } from "@privy-io/react-auth";
-import { ORContext } from 'ortypes/orContext';
 
 // For seeing orclient debug logs in console
 console.debug = console.log;
@@ -57,40 +54,34 @@ const mainConfig = {
   }
 }
 
-let config = mainConfig;
-
-if (process.env.NODE_ENV === 'development') {
-  config = sepoliaConfig;
-}
-
 // Configurations for other deployments:
 // For Optimism Fractal deployment: https://of-console.frapps.xyz/
 // For ORDAO office hours config: https://ordao-console.frapps.xyz/
 // Look for console output that starts with "Parsing config: "
 
-export async function createOrclient(wallet: ConnectedWallet): Promise<ORClient> {
-  const ornode: RemoteOrnode = new RemoteOrnode(config.ornodeUrl);
-
-  await wallet.switchChain(config.chainInfo.chainId as `0x${string}`);
-
-  const provider = await wallet.getEthereumProvider();
-  const bp = new BrowserProvider(provider);
-  const signer = await bp.getSigner();
-
-  const ctxCfg: ORContext.ConfigWithOrnode = {
-    orec: config.contracts.orec,
-    newRespect: config.contracts.newRespect,
-    ornode,
-    contractRunner: signer
-  }
-  const ctx = await ORContext.ORContext.create<ORContext.ConfigWithOrnode>(ctxCfg);
-
-  const orclient = new ORClient(ctx);
-
-  // If you want to be able to use through console
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).c = orclient;
-
-  return orclient;
-}
+// export async function createOrclient(wallet: ConnectedWallet): Promise<ORClient> {
+//   const ornode: RemoteOrnode = new RemoteOrnode(config.ornodeUrl);
+//
+//   await wallet.switchChain(config.chainInfo.chainId as `0x${string}`);
+//
+//   const provider = await wallet.getEthereumProvider();
+//   const bp = new BrowserProvider(provider);
+//   const signer = await bp.getSigner();
+//
+//   const ctxCfg: ORContext.ConfigWithOrnode = {
+//     orec: config.contracts.orec,
+//     newRespect: config.contracts.newRespect,
+//     ornode,
+//     contractRunner: signer
+//   }
+//   const ctx = await ORContext.ORContext.create<ORContext.ConfigWithOrnode>(ctxCfg);
+//
+//   const orclient = new ORClient(ctx);
+//
+//   // If you want to be able to use through console
+//   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+//   (window as any).c = orclient;
+//
+//   return orclient;
+// }
 

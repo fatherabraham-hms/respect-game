@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { ConsensusWinnerModel } from '@/lib/models/consensus-winner.model';
 import { Button } from '@/components/ui/button';
 import { ConnectedWallet, usePrivy, useWallets } from '@privy-io/react-auth';
-import { createOrclient } from '@/lib/orclient/createOrclient';
-import { hexlify, randomBytes } from 'ethers';
-import { RespectBreakoutRequest } from '@/lib/ortypes/dist/orclient';
+// import { hexlify, randomBytes } from 'ethers';
+// import { RespectBreakoutRequest } from '@/lib/ortypes/dist/orclient';
 import toast from 'react-hot-toast';
+import { OR_CONFIG_OP_MAIN, OR_CONFIG_OP_SEPOLIA } from '../../../../data/constants/app_constants';
 
 export default function IndexPage({ params }: { params: { sessionid: string } }) {
   const [consensusRankings, setConsensusRankings] = useState<ConsensusWinnerModel[]>([]);
@@ -16,6 +16,13 @@ export default function IndexPage({ params }: { params: { sessionid: string } })
   const { ready, authenticated, user } = usePrivy();
   const conWallets = useWallets();
   const wallet = user?.wallet;
+
+  let config = OR_CONFIG_OP_MAIN;
+
+  if (process.env.NODE_ENV === 'development') {
+    config = OR_CONFIG_OP_SEPOLIA;
+  }
+
 // TODO: Is this the right way to select a wallet?
   const userWallet: ConnectedWallet | undefined = useMemo(() =>{
     if (conWallets) {
@@ -43,23 +50,11 @@ useEffect(() => {
       setConsensusRankings(results);
     }
   });
-  if (ready && authenticated && orClient === null && userWallet) {
-    createOrclient(userWallet).then((client) => {
-      setOrClient(client);
-    });
-  }
 }, []);
 
 async function pushOnChain() {
     console.log("click");
     if (ready && authenticated && orClient && consensusRankings.length > 0 && groupId > 0) {
-      // TODO: orclient should be created once in app or whenever a wallet changes,
-      // instead creating it on each click here
-      // Should probably create a react hook.
-      console.log("Creating ORClient");
-      console.log("Vote length (s): ", await orClient.getVoteLength());
-      console.log("Making a proposal");
-      // TODO: should only show completion to the user after this function completes
       // After privy shows "all done" when using embeded wallet, it still has to make one request
       // to store a proposal.
       await orClient.proposeCustomSignal({
