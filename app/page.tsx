@@ -1,6 +1,6 @@
 'use client';
 import { UserPill } from '@privy-io/react-auth/ui';
-import Link from 'next/link';
+import { Link } from '@chakra-ui/next-js';
 import { Logo } from '@/components/icons';
 import { NavSidebar } from '@/components/app-shell/nav-sidebar';
 import { usePrivy } from '@privy-io/react-auth';

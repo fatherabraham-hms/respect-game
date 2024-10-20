@@ -1,7 +1,7 @@
 import './globals.css';
 import { Analytics } from '@vercel/analytics/react';
 import { Toaster } from 'react-hot-toast';
-import PrivyProviderWrapper from '@/components/app-shell/privy-provider-wrapper';
+import { Providers } from '@/app/providers';
 
 export default function RootLayout({
   children
@@ -11,7 +11,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full bg-gray-50">
       <body>
-        <PrivyProviderWrapper>{children}</PrivyProviderWrapper>
+        <Providers>{children}</Providers>
         <Toaster />
         <Analytics />
       </body>
