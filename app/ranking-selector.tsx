@@ -1,7 +1,7 @@
 'use client';
 
 import { RespectUser } from '@/lib/dtos/respect-user.dto';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { ConsensusSessionSetupModel, Vote } from '@/lib/models/consensus-session-setup.model';
 import {
@@ -15,8 +15,9 @@ import {
 } from '@/app/actions';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
-import { Badge } from '@/components/ui/badge';
 import { VOTING_ROUND_POLLING_INTERVAL } from '../data/constants/app_constants';
+import * as React from 'react';
+import { Box, chakra, Container, Divider, Flex } from '@chakra-ui/react';
 
 // TODO: https://tailwindcomponents.com/component/radio-buttons
 
@@ -154,17 +155,31 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
   // <pre>Rankings: { JSON.stringify(rankings[currentRankNumber], null, 2) }</pre>
 
   return (
-    <>
+    <Suspense fallback={(<h2>Loading...</h2>)}>
+    <Container maxW="6xl" py={10} px={4}>
+      <Box
+        border="1px solid"
+        borderColor="gray.100"
+        padding={5}
+        rounded="md"
+        boxShadow="lg"
+        overflow="hidden"
+      >
+        <Flex justifyContent="left" p={5}>
+          <chakra.h3
+            fontSize="xl"
+            fontWeight="bold"
+            textAlign="center"
+            color="gray.600">
+            Voting Level: {currentRankNumber}
+          </chakra.h3>
+        </Flex>
+        <Divider />
       {consensusReached && isAdmin &&
         <Alert message={'You have successfully reached consensus on this topic!'} variant={'success'}
                callback={nextLevel} />}
       {consensusReached && !isAdmin &&
         <Alert message={'You have successfully reached consensus on this topic!'} variant={'success'} />}
-      <br />
-      <h1 className="text-xl text-fuchsia-900">Now Gathering Consensus for Level: {currentRankNumber}</h1>
-      <span
-        className="text-sm text-gray-500 dark:text-gray-400">{rankingConfig.rankingScheme === 'numeric-descending' ? '6 is highest' : '1 is highest'}</span>
-      <br />
       <form className="border shadow-sm rounded-lg">
         {rankingConfig?.attendees?.map((user: RespectUser) => (
           <div key={user.walletaddress} className={'flex items-center'}>
@@ -175,12 +190,6 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
             <div className={`w-full p-4 ${user.loggedin ? 'border-b dark:border-neutral-700' : 'border-b dark:border-red-500'}`}>
               <div>
                 <label className="text-lg font-medium text-gray-900 dark:text-gray-100 mr-2">{user.name}</label>
-                {
-                  user.loggedin && <Badge color={'green'}>Logged In</Badge>
-                }
-                {
-                  !user.loggedin && <Badge color={'red'}>Not Logged In</Badge>
-                }
                 <div className="text-sm font-medium text-gray-400 dark:text-gray-100">{user.walletaddress}</div>
               </div>
               {hasClickedRadionButton &&
@@ -202,7 +211,9 @@ export function RankingSelector({ consensusSessionId, rankingConfig, setSession 
           </div>
         ))}
       </form>
-    </>
+      </Box>
+    </Container>
+    </Suspense>
   )
     ;
 }

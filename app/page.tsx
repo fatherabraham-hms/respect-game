@@ -4,7 +4,7 @@ import { Link } from '@chakra-ui/next-js';
 import { Logo } from '@/components/icons';
 import { NavSidebar } from '@/components/app-shell/nav-sidebar';
 import { usePrivy } from '@privy-io/react-auth';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UsersTable } from '@/app/users-table';
 import { getUserProfile, isLoggedInUserAdmin } from '@/app/actions';
@@ -48,10 +48,7 @@ export default function IndexPage() {
   }
 
   function renderContent() {
-    if (loading) {
-      return <div>Loading...</div>;
-    }
-    if (ready && authenticated) {
+    if (ready && authenticated && !loading) {
       if (!authContext.hasProfile) {
         return <Signup />;
       } else if (authContext.hasProfile && authContext.isAdmin) {
@@ -98,7 +95,9 @@ export default function IndexPage() {
               </Link>
               <UserPill />
             </header>
+            <Suspense fallback={(<h2>Loading...</h2>)}>
             {renderContent()}
+            </Suspense>
           </div>
         </div>
       </main>
