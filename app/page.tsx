@@ -6,7 +6,7 @@ import { NavSidebar } from '@/components/app-shell/nav-sidebar';
 import { usePrivy } from '@privy-io/react-auth';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { UsersTable } from '@/app/users-table';
+import  TestHatCheck from './users-table';
 import { getUserProfile, isLoggedInUserAdmin } from '@/app/actions';
 import { AuthContext } from 'data/context/Contexts';
 import { SessionList } from '@/components/sessions-list/session-list';
@@ -48,18 +48,18 @@ export default function IndexPage() {
   }
 
   function renderContent() {
-    if (loading) {
-      return <div>Loading...</div>;
-    }
-    if (ready && authenticated) {
-      if (!authContext.hasProfile) {
-        return <Signup />;
-      } else if (authContext.hasProfile && authContext.isAdmin) {
-        return <UsersTable />;
-      } else if (authContext.hasProfile && !authContext.isAdmin) {
-        return <SessionList />;
-      }
-    }
+    // if (loading) {
+    //   return <div>Loading...</div>;
+    // }
+    // if (ready && authenticated) {
+    //   if (!authContext.hasProfile) {
+    //     return <Signup />;
+    //   } else if (authContext.hasProfile && authContext.isAdmin) {
+        return <TestHatCheck />;
+    //   } else if (authContext.hasProfile && !authContext.isAdmin) {
+    //     return <SessionList />;
+    //   }
+    // }
     return null;
   }
 

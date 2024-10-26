@@ -12,6 +12,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@hatsprotocol/sdk-v1-core": "^0.10.0",
     "@neondatabase/serverless": "^0.9.3",
     "@privy-io/react-auth": "^1.89.0",
     "@privy-io/server-auth": "^1.14.2",
@@ -49,6 +50,7 @@
     "tailwindcss-animate": "^1.0.7",
     "ts-node": "^10.9.2",
     "typescript": "5.4.5",
+    "viem": "^2.21.34",
     "ws": "^8.18.0"
   },
   "prettier": {
