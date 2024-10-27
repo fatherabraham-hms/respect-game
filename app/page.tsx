@@ -41,23 +41,6 @@ export default function IndexPage() {
   });
 
   
-  useEffect(() => {
-    const checkUserAuthorization = async () => {
-      try {
-        if (user?.wallet?.address && user.wallet.address.startsWith("0x")) {
-          const isHatWearer = await hatsClient.isWearerOfHat({
-            wearer: user.wallet.address as `0x${string}`, // Type assertion
-            hatId,
-          });
-          setIsWearer(isHatWearer);
-        }
-      } catch (error) {
-        console.error("Error checking hat status:", error);
-      }
-    };
-
-    checkUserAuthorization();
-  }, [hatsClient, hatId, user?.wallet?.address]);
 
   useEffect(() => {
     if (ready && !authenticated) {
