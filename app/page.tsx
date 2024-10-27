@@ -6,12 +6,16 @@ import { NavSidebar } from '@/components/app-shell/nav-sidebar';
 import { usePrivy } from '@privy-io/react-auth';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import  TestHatCheck from './users-table';
+import { UsersTable } from './users-table';
 import { getUserProfile, isLoggedInUserAdmin } from '@/app/actions';
 import { AuthContext } from 'data/context/Contexts';
 import { SessionList } from '@/components/sessions-list/session-list';
 import { Signup } from '@/components/signup/signup';
 import Cookies from 'js-cookie';
+import { HatsClient } from "@hatsprotocol/sdk-v1-core";
+import { createPublicClient, http, PublicClient,  } from 'viem'; 
+import { optimism } from 'viem/chains'; 
+
 
 export default function IndexPage() {
   const router = useRouter();
@@ -19,9 +23,41 @@ export default function IndexPage() {
   const [authContext, setAuthContext] = useState({
     isLoggedIn: false,
     isAdmin: false,
-    hasProfile: false
+    hasProfile: false,
+    hasHat: false,
   });
   const [loading, setLoading] = useState(true);
+  const [isWearer, setIsWearer] = useState<boolean | null>(null);
+  const hatId = BigInt('0x000000af00010001000200000000000000000000000000000000000000000000');
+  // Setup the public client for Hats Protocol
+  const publicClient = createPublicClient({
+    chain: optimism,
+    transport: http('https://opt-mainnet.g.alchemy.com/v2/rl6LeNsMH14k3Wdb2qWo2uiVw-haHgKz'),
+  }) as PublicClient;
+
+  const hatsClient = new HatsClient({
+    chainId: 10,
+    publicClient: publicClient, 
+  });
+
+  
+  useEffect(() => {
+    const checkUserAuthorization = async () => {
+      try {
+        if (user?.wallet?.address && user.wallet.address.startsWith("0x")) {
+          const isHatWearer = await hatsClient.isWearerOfHat({
+            wearer: user.wallet.address as `0x${string}`, // Type assertion
+            hatId,
+          });
+          setIsWearer(isHatWearer);
+        }
+      } catch (error) {
+        console.error("Error checking hat status:", error);
+      }
+    };
+
+    checkUserAuthorization();
+  }, [hatsClient, hatId, user?.wallet?.address]);
 
   useEffect(() => {
     if (ready && !authenticated) {
@@ -33,33 +69,45 @@ export default function IndexPage() {
     }
   }, [ready, authenticated, router]);
 
-  function fetchBackendAuthContext() {
+  async function fetchBackendAuthContext() {
     if (ready && authenticated && user?.wallet && user.wallet.address) {
-      Promise.all([isLoggedInUserAdmin(), getUserProfile(user.wallet.address)])
-        .then(([isAdmin, profile]) => {
-          setAuthContext({
-            isAdmin,
-            isLoggedIn: authenticated,
-            hasProfile: profile?.name !== '' && profile?.username !== ''
-          });
-          setLoading(false);
+      try {
+        const [isAdmin, profile, isHatWearer] = await Promise.all([
+          isLoggedInUserAdmin(),
+          getUserProfile(user.wallet.address),
+          hatsClient.isWearerOfHat({
+            wearer: user.wallet.address as `0x${string}`, // Type assertion
+            hatId,
+          }),
+        ]);
+
+        setAuthContext({
+          isAdmin,
+          isLoggedIn: authenticated,
+          hasProfile: profile?.name !== '' && profile?.username !== '',
+          hasHat: isHatWearer,
         });
+      } catch (error) {
+        console.error("Error fetching auth context:", error);
+      } finally {
+        setLoading(false);
+      }
     }
   }
 
   function renderContent() {
-    // if (loading) {
-    //   return <div>Loading...</div>;
-    // }
-    // if (ready && authenticated) {
-    //   if (!authContext.hasProfile) {
-    //     return <Signup />;
-    //   } else if (authContext.hasProfile && authContext.isAdmin) {
-        return <TestHatCheck />;
-    //   } else if (authContext.hasProfile && !authContext.isAdmin) {
-    //     return <SessionList />;
-    //   }
-    // }
+    if (loading) {
+      return <div>Loading...</div>;
+    }
+    if (ready && authenticated) {
+      if (!authContext.hasProfile) {
+        return <Signup />;
+      } else if (authContext.hasProfile && authContext.hasHat) {
+        return <UsersTable />;
+      } else if (authContext.hasProfile && !authContext.hasHat) {
+        return <SessionList />;
+      }
+    }
     return null;
   }
 
