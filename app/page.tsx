@@ -12,7 +12,7 @@ import { AuthContext } from 'data/context/Contexts';
 import { SessionList } from '@/components/sessions-list/session-list';
 import { Signup } from '@/components/signup/signup';
 import Cookies from 'js-cookie';
-import { Box, chakra, Container, Divider, Flex } from '@chakra-ui/react';
+import { Box, chakra, Container, Divider, Flex, Spinner } from '@chakra-ui/react';
 import * as React from 'react';
 
 export default function IndexPage() {
@@ -23,7 +23,6 @@ export default function IndexPage() {
     isAdmin: false,
     hasProfile: false
   });
-  const [pageTitle, setPageTitle] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -58,7 +57,9 @@ export default function IndexPage() {
   }
 
   function renderContent() {
-    if (ready && authenticated && !loading) {
+    if (loading) {
+        return <Spinner m={10}/>;
+    } else if (ready && authenticated && !loading) {
       if (!authContext.hasProfile) {
         return <Signup />;
       } else if (authContext.hasProfile && authContext.isAdmin) {
@@ -127,11 +128,11 @@ export default function IndexPage() {
                       textAlign="center"
                       color="gray.600"
                     >
-                      Page Title
+
                     </chakra.h3>
                   </Flex>
                   <Divider />
-                  <Suspense fallback={<h2>Loading...</h2>}>
+                  <Suspense fallback={<Spinner m={10}/>}>
                     {renderContent()}
                   </Suspense>
                 </Box>
