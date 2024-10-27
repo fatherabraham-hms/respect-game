@@ -1,8 +1,7 @@
 import './globals.css';
 import { Analytics } from '@vercel/analytics/react';
 import { Toaster } from 'react-hot-toast';
-import { Providers, theme } from '@/app/providers';
-import { ColorModeScript } from '@chakra-ui/react';
+import { Providers } from '@/app/providers';
 
 export default function RootLayout({
   children
@@ -12,7 +11,6 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full bg-gray-50">
       <body>
-        <ColorModeScript initialColorMode={theme.initialColorMode} />
         <Providers>{children}</Providers>
         <Toaster />
         <Analytics />
