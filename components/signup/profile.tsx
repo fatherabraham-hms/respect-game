@@ -17,7 +17,7 @@ type SignupInputs = {
   telegram: string;
 };
 
-export function Signup() {
+export function Profile() {
   const router = useRouter();
   const {
     ready,
@@ -45,10 +45,10 @@ export function Signup() {
       walletaddress: user?.wallet?.address
     }).then((response: Partial<RespectUser> | { message: string }) => {
       if (response && !('message' in response)) {
-        authContext.setAuthContext({
-          ...authContext,
-          hasProfile: true
-        });
+        // authContext.setAuthContext({
+        //   ...authContext,
+        //   hasProfile: true
+        // });
         router.push('/play');
         toast.success('Profile updated!');
       } else if (response && 'message' in response) {
@@ -87,9 +87,7 @@ export function Signup() {
         </div>
         <div className="md:flex md:items-center mb-6">
           <div className="md:w-1/3">
-            <label className="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4" htmlFor="inline-password">
-              Email
-            </label>
+            <label className="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4" htmlFor="inline-password">Email</label>
           </div>
           <div className="md:w-2/3">
             <Input placeholder={'foo@bar.com'} {...register("email", { required: true })} />
@@ -98,9 +96,7 @@ export function Signup() {
         </div>
         <div className="md:flex md:items-center mb-6">
           <div className="md:w-1/3">
-            <label className="md:w-2/3 block text-gray-500 font-bold">
-              Telegram
-            </label>
+            <label className="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4">Telegram</label>
           </div>
           <div className="md:w-2/3">
             <Input placeholder={'wunderkitty'} {...register("telegram", { required: true })} />

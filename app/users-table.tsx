@@ -8,7 +8,7 @@ import {
   TableBody,
   Table
 } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+
 import { useRouter } from 'next/navigation';
 import { RespectUser } from '@/lib/dtos/respect-user.dto';
 import { useEffect, useState } from 'react';
@@ -16,6 +16,7 @@ import { createConsensusSessionAndUserGroupAction, getUsers } from '@/app/action
 import toast from 'react-hot-toast';
 import { Spinner } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@chakra-ui/react';
 
 
 export function UsersTable() {
@@ -59,10 +60,8 @@ export function UsersTable() {
     <>
       {(
         <Button
-          className="mt-4 w-40 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           disabled={groupAddresses?.length <= 1}
-          onClick={() => createSessionHandler()}
-        >
+          onClick={() => createSessionHandler()}>
           Create Session ({groupAddresses?.length || 0})
         </Button>
       )}
