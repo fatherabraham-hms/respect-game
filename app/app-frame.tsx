@@ -1,26 +1,21 @@
 'use client';
-import { Box, chakra, Container, Divider, Flex, Spinner } from '@chakra-ui/react';
+import { Box, chakra, Container, Divider, Flex } from '@chakra-ui/react';
 import { Link } from '@chakra-ui/next-js';
 import { Logo } from '@/components/icons';
 import { NavSidebar } from '@/components/app-shell/nav-sidebar';
 import { UserPill } from '@privy-io/react-auth/ui';
-import { Suspense, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
 import Cookies from 'js-cookie';
 import { getUserProfile, isLoggedInUserAdmin } from '@/app/actions';
+import { AuthContextType } from '../data/context/Contexts';
 export function AppFrame({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { ready, authenticated, user } = usePrivy();
-  // const ready = true;
-  // const authenticated = true;
-  // const user = {
-  //   wallet: {
-  //     address: '0x89FC47B5Ba0cC9EbF64B489E77357E265442Bb31'
-  //   }
-  // };
-  const [authContext, setAuthContext] = useState({
+  const [authContext, setAuthContext] = useState<AuthContextType>({
+    isInit: false,
     isLoggedIn: false,
     isAdmin: false,
     hasProfile: false
@@ -49,6 +44,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
         getUserProfile(user.wallet.address)
       ]).then(([isAdmin, profile]) => {
         setAuthContext({
+          isInit: true,
           isAdmin,
           isLoggedIn: authenticated,
           hasProfile: profile?.name !== '' && profile?.username !== ''

@@ -73,7 +73,7 @@ async function isAuthorized() {
   const activeWalletAddress = cookies().get('activeWalletAddress');
   const ipaddress = (headers().get('x-forwarded-for') ?? '127.0.0.1').split(',')[0];
   if (activeWalletAddress?.value && (!privyUserId?.value || !ipaddress)) {
-    await logout();
+    await logoutAction();
   }
   if (!ipaddress || !activeWalletAddress?.value || !privyUserId?.value) {
     if (!ipaddress) {
@@ -87,7 +87,7 @@ async function isAuthorized() {
     }
     redirect('/');
   }
-  const session = await getBeUserSession(ipaddress, activeWalletAddress.value, privyUserId?.value || '');
+  let session = await getBeUserSession(ipaddress, activeWalletAddress.value, privyUserId?.value || '');
 
   if (!session || session.length === 0) {
     // if their backend session is not found, but they are authorized, create a new session
@@ -108,17 +108,12 @@ async function isAuthorized() {
         }
         console.log('renewing session for: ', profileData?.walletaddress);
         await login(renewalUser);
+        session = await getBeUserSession(ipaddress, activeWalletAddress.value, privyUserId?.value || '');
       }
-      const renewalUser: any = {
-        wallet: {
-          address: profileData?.walletaddress
-        }
-      }
-      await login(renewalUser);
     } else {
       // if no session is returned, make sure they are logged out fully.
       console.log('logging out due to no session');
-      await logout();
+      await logoutAction();
     }
   }
   console.log('session created/found: ', session);
@@ -210,7 +205,7 @@ export async function isLoggedInAction(address: string): Promise<boolean> {
   return false;
 }
 
-export async function logout() {
+export async function logoutAction() {
   console.log('logging out');
   await checkAccessToken();
   const activeWalletAddress = cookies().get('activeWalletAddress');

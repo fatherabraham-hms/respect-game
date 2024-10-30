@@ -5,6 +5,11 @@ export type Vote = {
   count: number
 }
 
+export type VotesResponse = {
+  votes: Vote[],
+  votersWhoHaveCast: string[]
+}
+
 export type ConsensusSessionSetupModel =  {
   groupNum: number,
   attendees: RespectUser[],

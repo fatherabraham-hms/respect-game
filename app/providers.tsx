@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
 import { getUserProfile, isLoggedInUserAdmin } from '@/app/actions';
 import { useRouter } from 'next/navigation';
-import { AuthContext } from '../data/context/Contexts';
+import { AuthContext, AuthContextType } from '../data/context/Contexts';
 
 const config: ThemeConfig = {
   initialColorMode: 'light',
@@ -19,17 +19,11 @@ export const theme = extendTheme({ config });
 export function Providers({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { ready, authenticated, user } = usePrivy();
-  // const ready = true;
-  // const authenticated = true;
-  // const user = {
-  //   wallet: {
-  //     address: '0x89FC47B5Ba0cC9EbF64B489E77357E265442Bb31'
-  //   }
-  // };
-  const [authContext, setAuthContext] = useState({
-    isLoggedIn: false,
+  const [authContext, setAuthContext] = useState<AuthContextType>({
+    isInit: true,
     isAdmin: false,
-    hasProfile: false,
+    isLoggedIn: false,
+    hasProfile: false
   });
   const [loading, setLoading] = useState(true);
 
@@ -52,9 +46,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         getUserProfile(user.wallet.address)
       ]).then(([isAdmin, profile]) => {
         setAuthContext({
+          isInit: false,
           isAdmin,
           isLoggedIn: authenticated,
-          hasProfile: profile?.name !== '' && profile?.username !== ''
+          hasProfile: profile?.name !== '' && profile?.username !== '',
         });
         setLoading(false);
       });
