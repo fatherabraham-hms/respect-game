@@ -238,7 +238,6 @@ export function RankingSelector({
               variant={'success'}
             />
           )}
-          {loading &&
             <form className="border shadow-sm rounded-lg">
               {rankingConfig?.attendees?.map((user: RespectUser) => (
                 <div key={user.walletaddress} className={'flex items-center'}>
@@ -288,7 +287,6 @@ export function RankingSelector({
                 </div>
               ))}
             </form>
-          }
         </Box>
       </Container>
     </Suspense>
