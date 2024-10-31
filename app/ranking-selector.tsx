@@ -9,6 +9,7 @@ import {
 } from '@/lib/models/consensus-session-setup.model';
 import {
   getCurrentVotesForSessionByRankingAction,
+  getGroupMemberCountAction,
   getRemainingAttendeesForSessionAction,
   getRemainingRankingsForSessionAction,
   hasConsensusOnRankingAction,
@@ -48,6 +49,8 @@ export function RankingSelector({
   const [isAdmin, setIsAdmin] = useState(false);
   const [consensusReached, setConsensusReached] = useState(false);
   const [hasClickedRadionButton, setHasClickedRadionButton] = useState(false);
+  const [groupCount, setGroupCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetchAvailableRankings = async (): Promise<number | null> => {
@@ -84,6 +87,11 @@ export function RankingSelector({
     if (Array.isArray(currentVotesResp) && currentVotesResp.length > 0) {
       setVotingRound(currentVotesResp as Vote[]);
     }
+    const totalVotes = currentVotesResp.reduce(
+      (acc, ranking) => acc + ranking.count,
+      0
+    );
+    setTotalCount(totalVotes);
     updateAttendees(consensusSessionId);
   };
   const fetchConsensusStatus = async (ranking: number | null) => {
@@ -103,6 +111,10 @@ export function RankingSelector({
   };
 
   useEffect(() => {
+    getGroupMemberCountAction(consensusSessionId).then((count:number) => {
+      setGroupCount(count);
+    });
+
     isLoggedInUserAdmin().then((isAdmin) => {
       setIsAdmin(isAdmin);
     });
@@ -149,6 +161,11 @@ export function RankingSelector({
       .then((currentVotesResp) => {
         if (Array.isArray(currentVotesResp) && currentVotesResp.length > 0) {
           setVotingRound(currentVotesResp as Vote[]);
+          const totalVotes = currentVotesResp.reduce(
+            (acc, ranking) => acc + ranking.count,
+            0
+          );
+          setTotalCount(totalVotes);
         }
         setHasClickedRadionButton(true);
       })
@@ -183,8 +200,7 @@ export function RankingSelector({
     setSingleRankingConsensusStatusAction(consensusSessionId, currentRankNumber)
       .then(() => {
         toast.success('Consensus Saved!');
-        updateAttendees(consensusSessionId);
-        fetchCurrentVotingInfo().then();
+        fetchVotingRound(nextRankNumber);
       })
       .catch(() => toast.error('Oops! An error occured, please try again!'));
   }
@@ -214,7 +230,7 @@ export function RankingSelector({
           boxShadow="lg"
           overflow="hidden"
         >
-          <Flex justifyContent="left" p={5}>
+
             <chakra.h3
               fontSize="xl"
               fontWeight="bold"
@@ -223,7 +239,14 @@ export function RankingSelector({
             >
               Voting Level: {currentRankNumber}
             </chakra.h3>
-          </Flex>
+            <chakra.h4
+              fontSize="md"
+              fontWeight="bold"
+              textAlign="center"
+              color="gray.600">
+              {totalCount} Votes cast by {groupCount} Attendees
+            </chakra.h4>
+
           <Divider />
           {consensusReached && isAdmin && (
             <Alert
@@ -238,55 +261,55 @@ export function RankingSelector({
               variant={'success'}
             />
           )}
-            <form className="border shadow-sm rounded-lg">
-              {rankingConfig?.attendees?.map((user: RespectUser) => (
-                <div key={user.walletaddress} className={'flex items-center'}>
-                  <div className={'flex-grow-0 p-4'}>
-                    <input
-                      type={'radio'}
-                      name={'rankings'}
-                      value={'upvote'}
-                      onChange={() => setRanking(user.walletaddress, 'upvote')}
-                    />
+          <form className="border shadow-sm rounded-lg">
+            {rankingConfig?.attendees?.map((user: RespectUser) => (
+              <div key={user.walletaddress} className={'flex items-center'}>
+                <div className={'flex-grow-0 p-4'}>
+                  <input
+                    type={'radio'}
+                    name={'rankings'}
+                    value={'upvote'}
+                    onChange={() => setRanking(user.walletaddress, 'upvote')}
+                  />
+                </div>
+                <div
+                  className={`w-full p-4 ${user.loggedin ? 'border-b dark:border-neutral-700' : 'border-b dark:border-red-500'}`}
+                >
+                  <div>
+                    <label className="text-lg font-medium text-gray-900 dark:text-gray-100 mr-2">
+                      {user.name}
+                    </label>
+                    <div className="text-sm font-medium text-gray-400 dark:text-gray-100">
+                      {user.walletaddress}
+                    </div>
                   </div>
-                  <div
-                    className={`w-full p-4 ${user.loggedin ? 'border-b dark:border-neutral-700' : 'border-b dark:border-red-500'}`}
-                  >
+                  {hasClickedRadionButton && (
                     <div>
-                      <label className="text-lg font-medium text-gray-900 dark:text-gray-100 mr-2">
-                        {user.name}
-                      </label>
-                      <div className="text-sm font-medium text-gray-400 dark:text-gray-100">
-                        {user.walletaddress}
+                      <div
+                        className={
+                          `ms-[calc(${calculateRankingPercentageForCandidate(user)}%-1.25rem)] ` +
+                          'inline-block mb-2 py-0.5 px-1.5 bg-blue-50 border border-blue-200 text-xs font-medium text-blue-600 rounded-lg dark:bg-blue-800/30 dark:border-blue-800 dark:text-blue-500'
+                        }
+                      >
+                        {`${calculateRankingPercentageForCandidate(user)}%`}
+                      </div>
+                      <div
+                        className="flex w-full h-2 bg-gray-200 rounded-full overflow-hidden dark:bg-neutral-700"
+                        role="progressbar"
+                      >
+                        <div
+                          style={{
+                            width: `${calculateRankingPercentageForCandidate(user)}%`
+                          }}
+                          className={`flex flex-col justify-center rounded-full overflow-hidden bg-blue-600 text-xs text-white text-center whitespace-nowrap transition duration-500 dark:bg-blue-500`}
+                        ></div>
                       </div>
                     </div>
-                    {hasClickedRadionButton && (
-                      <div>
-                        <div
-                          className={
-                            `ms-[calc(${calculateRankingPercentageForCandidate(user)}%-1.25rem)] ` +
-                            'inline-block mb-2 py-0.5 px-1.5 bg-blue-50 border border-blue-200 text-xs font-medium text-blue-600 rounded-lg dark:bg-blue-800/30 dark:border-blue-800 dark:text-blue-500'
-                          }
-                        >
-                          {`${calculateRankingPercentageForCandidate(user)}%`}
-                        </div>
-                        <div
-                          className="flex w-full h-2 bg-gray-200 rounded-full overflow-hidden dark:bg-neutral-700"
-                          role="progressbar"
-                        >
-                          <div
-                            style={{
-                              width: `${calculateRankingPercentageForCandidate(user)}%`
-                            }}
-                            className={`flex flex-col justify-center rounded-full overflow-hidden bg-blue-600 text-xs text-white text-center whitespace-nowrap transition duration-500 dark:bg-blue-500`}
-                          ></div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
-              ))}
-            </form>
+              </div>
+            ))}
+          </form>
         </Box>
       </Container>
     </Suspense>
