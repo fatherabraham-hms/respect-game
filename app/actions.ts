@@ -456,6 +456,16 @@ export async function setSingleRankingConsensusStatusAction(consensusSessionId: 
   }
 }
 
+export async function getGroupMemberCountAction(consensusSessionId: number) {
+  await checkAccessToken();
+  const groupid = await getActiveGroupIdBySessionId(consensusSessionId);
+  if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
+    throw new Error('Not a member of group');
+  }
+  const groupMembers = await getActiveGroupMembersByGroupId(groupid[0].groupid);
+  return groupMembers.length;
+}
+
 export async function getRemainingAttendeesForSessionAction(consensusSessionId: number) {
   const beSession = await isAuthorized();
   if (!beSession || !beSession.sessionid || !beSession.walletaddress || !beSession.userid) {
