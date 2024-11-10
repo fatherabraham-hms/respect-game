@@ -1,60 +1,45 @@
 'use client';
-import { Box, chakra, Container, Divider, Flex } from '@chakra-ui/react';
+import {
+  Box,
+  chakra,
+  ChakraProvider,
+  Container,
+  Divider,
+  Flex
+} from '@chakra-ui/react';
 import { Link } from '@chakra-ui/next-js';
 import { Logo } from '@/components/icons';
 import { NavSidebar } from '@/components/app-shell/nav-sidebar';
 import { UserPill } from '@privy-io/react-auth/ui';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
-import Cookies from 'js-cookie';
-import { getUserProfile, isLoggedInUserAdmin } from '@/app/actions';
-import { AuthContextType } from '../data/context/Contexts';
+import { AuthContext, AuthContextType } from '../data/context/Contexts';
 export function AppFrame({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { ready, authenticated, user } = usePrivy();
-  const [authContext, setAuthContext] = useState<AuthContextType>({
-    isInit: false,
-    isLoggedIn: false,
-    isAdmin: false,
-    hasProfile: false
-  });
+  const { isInit, isLoggedIn, isAdmin, hasProfile } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     if (ready && !authenticated) {
       router.push('/login');
     }
-    if (
-      ready &&
-      authenticated &&
-      user?.wallet?.address &&
-      user.wallet.address.length > 8
-    ) {
-      Cookies.set('activeWalletAddress', user?.wallet?.address, { expires: 1 });
-      fetchBackendAuthContext();
+    if (isLoggedIn && hasProfile) {
+      setLoading(false);
     }
-  }, [ready, authenticated, router]);
+  }, [ready, authenticated, router, isInit, isLoggedIn, isAdmin, hasProfile]);
 
-  function fetchBackendAuthContext() {
-    if (ready && authenticated && user?.wallet && user.wallet.address) {
-      Promise.all([
-        isLoggedInUserAdmin(),
-        getUserProfile(user.wallet.address)
-      ]).then(([isAdmin, profile]) => {
-        setAuthContext({
-          isInit: true,
-          isAdmin,
-          isLoggedIn: authenticated,
-          hasProfile: profile?.name !== '' && profile?.username !== ''
-        });
-        setLoading(false);
-      });
-    }
+  if (!isMounted) {
+    return null;
   }
+
   return (
-      !loading && <main className="flex flex-1 flex-col">
+    <ChakraProvider>
+      <main className="flex flex-1 flex-col">
         <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
           <div className="hidden border-r bg-gray-100/40 lg:block dark:bg-gray-800/40">
             <div className="flex h-full max-h-screen flex-col gap-2">
@@ -109,5 +94,6 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </main>
+    </ChakraProvider>
   );
 }

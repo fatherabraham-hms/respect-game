@@ -37,7 +37,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       Cookies.set('activeWalletAddress', user?.wallet?.address, { expires: 1 });
       fetchBackendAuthContext();
     }
-  }, [ready, authenticated, router]);
+  }, [ready, authenticated, router, user]);
 
   function fetchBackendAuthContext() {
     if (ready && authenticated && user?.wallet && user.wallet.address) {
@@ -49,19 +49,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
           isInit: false,
           isAdmin,
           isLoggedIn: authenticated,
-          hasProfile: profile?.name !== '' && profile?.username !== '',
+          hasProfile: profile?.name !== '' && profile?.username !== ''
         });
         setLoading(false);
       });
     }
   }
+
   return (
-    <ChakraProvider theme={theme}>
       <PrivyProviderWrapper>
         <AuthContext.Provider value={authContext}>
           <AppFrame>{children}</AppFrame>
         </AuthContext.Provider>
       </PrivyProviderWrapper>
-    </ChakraProvider>
   );
 }
