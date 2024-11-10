@@ -11,16 +11,12 @@ export default function IndexPage() {
   const { ready, authenticated, user } = usePrivy();
 
   function routeToAppropriatePage() {
-    if (authContext && !authContext.isInit) {
-      if (authContext.isLoggedIn && !authContext.hasProfile) {
-        router.push('/profile');
-      } else if (authContext.hasProfile && authContext.isAdmin) {
-        router.push('/groups');
-      } else if (authContext.hasProfile && !authContext.isAdmin) {
-        router.push('/play');
-      } else {
-        logoutAction();
-      }
+    if (authContext.isLoggedIn && !authContext.hasProfile) {
+      router.push('/profile');
+    } else if (authContext.hasProfile && authContext.isAdmin) {
+      router.push('/groups');
+    } else if (authContext.hasProfile && !authContext.isAdmin) {
+      router.push('/play');
     }
   }
 
@@ -29,10 +25,8 @@ export default function IndexPage() {
       router.push('/login');
     } else if (ready && authenticated && !authContext.isInit) {
       routeToAppropriatePage();
-    } else {
-      router.push('/');
     }
-  }, [ready, authenticated, router]);
+  }, [ready, authenticated, router, authContext]);
 
   return (<main className="flex flex-1 flex-col"></main>);
 }
