@@ -16,29 +16,58 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
 import { AuthContext, AuthContextType } from '../data/context/Contexts';
+import { getUserProfile, isLoggedInUserAdmin } from '@/app/actions';
+
 export function AppFrame({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { ready, authenticated, user } = usePrivy();
-  const { isInit, isLoggedIn, isAdmin, hasProfile } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
+  const [authContext, setAuthContext] = useState<AuthContextType>({
+    isInit: true,
+    isAdmin: false,
+    isLoggedIn: false,
+    hasProfile: false
+  });
 
   useEffect(() => {
     setIsMounted(true);
+    if (ready && authenticated && authContext?.isInit) {
+      fetchBackendAuthContext();
+    }
+
     if (ready && !authenticated) {
       router.push('/login');
     }
-    if (isLoggedIn && hasProfile) {
+    if (authContext?.isLoggedIn && authContext?.hasProfile) {
       setLoading(false);
     }
-  }, [ready, authenticated, router, isInit, isLoggedIn, isAdmin, hasProfile]);
+  }, [ready, authenticated, router, authContext]);
 
   if (!isMounted) {
     return null;
   }
 
+  function fetchBackendAuthContext() {
+    if (ready && authenticated && user?.wallet && user.wallet.address) {
+      Promise.all([
+        isLoggedInUserAdmin(),
+        getUserProfile(user.wallet.address)
+      ]).then(([isAdmin, profile]) => {
+        setAuthContext({
+          isInit: false,
+          isAdmin,
+          isLoggedIn: authenticated,
+          hasProfile: profile?.name !== '' && profile?.username !== ''
+        });
+        setLoading(false);
+      });
+    }
+  }
+
   return (
     <ChakraProvider>
+      <AuthContext.Provider value={authContext}>
       <main className="flex flex-1 flex-col">
         <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
           <div className="hidden border-r bg-gray-100/40 lg:block dark:bg-gray-800/40">
@@ -94,6 +123,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </main>
+      </AuthContext.Provider>
     </ChakraProvider>
   );
 }
