@@ -47,8 +47,16 @@ export function SessionList() {
     return `/session/${session.sessionid}`;
   }
 
+  function showContent() {
+    return !isLoading && recentSessions && recentSessions.length > 0;
+  }
+
+  if (!showContent()) {
+    return <Spinner m={10} />
+  }
+
   return (
-    (isLoading && <Spinner m={10} />) || (
+    (
       <TableContainer>
         <Table colorScheme="gray" size="sm">
           {/*<Thead>*/}

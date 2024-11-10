@@ -4,7 +4,7 @@ import { useContext, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthContext } from '../../data/context/Contexts';
 
-export default async function IndexPage() {
+export default function IndexPage() {
   const authContext = useContext(AuthContext);
   const router = useRouter();
 
@@ -16,6 +16,7 @@ export default async function IndexPage() {
       router.push('/play');
     }
   }, []);
+
   return (
     authContext.isAdmin && <UsersTable />
   );

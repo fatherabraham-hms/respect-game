@@ -11,12 +11,13 @@ import { Link } from '@chakra-ui/next-js';
 import { Logo } from '@/components/icons';
 import { NavSidebar } from '@/components/app-shell/nav-sidebar';
 import { UserPill } from '@privy-io/react-auth/ui';
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
 import { AuthContext, AuthContextType } from '../data/context/Contexts';
 import { getUserProfile, isLoggedInUserAdmin } from '@/app/actions';
+import Cookies from 'js-cookie';
 
 export function AppFrame({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -32,7 +33,8 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setIsMounted(true);
-    if (ready && authenticated && authContext?.isInit) {
+    if (ready && authenticated && authContext?.isInit && user && user?.wallet?.address) {
+      Cookies.set('activeWalletAddress', user.wallet.address, { expires: 1 });
       fetchBackendAuthContext();
     }
 
