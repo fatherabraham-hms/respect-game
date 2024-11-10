@@ -25,7 +25,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
   const [authContext, setAuthContext] = useState<AuthContextType>({
-    isInit: true,
+    isFirstAuthContextInit: true,
     isAdmin: false,
     isLoggedIn: false,
     hasProfile: false
@@ -33,7 +33,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setIsMounted(true);
-    if (ready && authenticated && authContext?.isInit && user && user?.wallet?.address) {
+    if (ready && authenticated && authContext?.isFirstAuthContextInit && user && user?.wallet?.address) {
       Cookies.set('activeWalletAddress', user.wallet.address, { expires: 1 });
       fetchBackendAuthContext();
     }
@@ -57,7 +57,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
         getUserProfile(user.wallet.address)
       ]).then(([isAdmin, profile]) => {
         setAuthContext({
-          isInit: false,
+          isFirstAuthContextInit: false,
           isAdmin,
           isLoggedIn: authenticated,
           hasProfile: profile?.name !== '' && profile?.username !== ''

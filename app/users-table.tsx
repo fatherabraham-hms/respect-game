@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 import { Spinner } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@chakra-ui/react';
+import { SESSION_POLLING_INTERVAL } from '../data/constants/app_constants';
 
 
 export function UsersTable() {
@@ -39,7 +40,7 @@ export function UsersTable() {
       }
     };
     fetchUserData();
-    const interval = setInterval(fetchUserData, 5000);
+    const interval = setInterval(fetchUserData, SESSION_POLLING_INTERVAL);
     return () => clearInterval(interval);
   }, [query, offset]);
 

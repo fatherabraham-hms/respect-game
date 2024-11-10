@@ -3,12 +3,11 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthContext } from '../data/context/Contexts';
-import { getUserProfile, isLoggedInUserAdmin, logoutAction } from '@/app/actions';
 
 export default function IndexPage() {
   const router = useRouter();
   const authContext = useContext(AuthContext);
-  const { ready, authenticated, user } = usePrivy();
+  const { ready, authenticated } = usePrivy();
 
   function routeToAppropriatePage() {
     if (authContext.isLoggedIn && !authContext.hasProfile) {
@@ -23,7 +22,7 @@ export default function IndexPage() {
   useEffect(() => {
     if (ready && !authenticated) {
       router.push('/login');
-    } else if (ready && authenticated && !authContext.isInit) {
+    } else if (ready && authenticated && !authContext.isFirstAuthContextInit) {
       routeToAppropriatePage();
     }
   }, [ready, authenticated, router, authContext]);

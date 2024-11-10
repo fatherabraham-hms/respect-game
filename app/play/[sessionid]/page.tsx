@@ -6,13 +6,17 @@ import { RankingSelector } from '@/app/ranking-selector';
 import { getConsensusSetupAction } from '@/app/actions';
 import { Spinner } from '@chakra-ui/react';
 import * as React from 'react';
+import { SESSION_POLLING_INTERVAL } from '../../../data/constants/app_constants';
 
 export default function IndexPage({
   params
 }: {
   params: { sessionid: string };
 }) {
-  const [consensusSessionId, setConsensusSessionId] = useState<number>(0);
+  if (!params.sessionid) {
+    return null;
+  }
+  const consensusSessionId = parseInt(params.sessionid);
   const [currentSessionSetup, setCurrentSessionSetup] = useState({
     groupNum: 1,
     attendees: [],
@@ -21,15 +25,25 @@ export default function IndexPage({
   } as ConsensusSessionSetupModel | null);
   const [loading, setLoading] = useState(true);
 
+  function fetchConsensusSetup() {
+    getConsensusSetupAction(consensusSessionId).then((setup) => {
+      setCurrentSessionSetup(setup);
+      setLoading(false);
+    });
+    // getConsensusSession(sessionId).then((session) => {
+    //   if (session) {
+    //     setSessionMetadata(session);
+    //   }
+    // });
+  }
+
   useEffect(() => {
-    if (params.sessionid.length > 0) {
-      const mySessionId = parseInt(params.sessionid);
-      setConsensusSessionId(mySessionId);
-      getConsensusSetupAction(mySessionId).then((consensusSessionSetup) => {
-        setCurrentSessionSetup(consensusSessionSetup);
-        setLoading(false);
-      });
-    }
+      fetchConsensusSetup();
+      const interval = setInterval(
+        fetchConsensusSetup,
+        SESSION_POLLING_INTERVAL
+      );
+      return () => clearInterval(interval);
   }, []);
 
   let visibleElements = <Spinner m={10} />;

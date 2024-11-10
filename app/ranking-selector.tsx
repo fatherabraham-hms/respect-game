@@ -26,7 +26,6 @@ import {
   chakra,
   Container,
   Divider,
-  Flex,
   Spinner
 } from '@chakra-ui/react';
 
@@ -52,6 +51,7 @@ export function RankingSelector({
   const [groupCount, setGroupCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
 
   const fetchAvailableRankings = async (): Promise<number | null> => {
     return getRemainingRankingsForSessionAction(consensusSessionId).then(
@@ -75,7 +75,7 @@ export function RankingSelector({
     );
   };
 
-  // fetch the current voting round with short polling
+  // When the ranking changes, fetch the current voting round
   const fetchVotingRound = async (ranking: number | null) => {
     if (ranking === null || ranking === 0) {
       return;
@@ -94,6 +94,7 @@ export function RankingSelector({
     setTotalCount(totalVotes);
     updateAttendees(consensusSessionId);
   };
+
   const fetchConsensusStatus = async (ranking: number | null) => {
     hasConsensusOnRankingAction(consensusSessionId, ranking || 0).then(
       (hasConsensus) => {
@@ -102,7 +103,7 @@ export function RankingSelector({
     );
   };
 
-  // first execute the fetchAvailableRankings function, then pass the result to both fetchConsensusStatus and fetchVotingRound to resolve independently
+  // Short Poll: first execute the fetchAvailableRankings function, then pass the result to fetchConsensusStatus
   const fetchCurrentVotingInfo = async () => {
     return fetchAvailableRankings().then((ranking) => {
       fetchConsensusStatus(ranking);
@@ -126,11 +127,13 @@ export function RankingSelector({
       fetchCurrentVotingInfo,
       VOTING_ROUND_POLLING_INTERVAL
     );
+    setIntervalId(interval);
 
     return () => clearInterval(interval);
   }, []);
 
   if (currentRankNumber === 0) {
+    clearInterval(intervalId!);
     router.push(`/play/${consensusSessionId}/final`);
   }
 
