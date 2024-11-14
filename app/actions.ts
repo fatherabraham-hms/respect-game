@@ -116,7 +116,7 @@ async function isAuthorized() {
       await logoutAction();
     }
   }
-  console.log('session created/found: ', session);
+  // console.log('session created/found: ', session);
   return session[0];
 }
 
@@ -415,7 +415,6 @@ export async function setSingleRankingConsensusStatusAction(consensusSessionId: 
   if (!counts || counts.length === 0) {
     throw new Error('No counts found');
   }
-  const totalVotes = counts.reduce((acc, ranking) => acc + ranking.count, 0);
   // get attendees for the session and groupid
   const groupMembers = await getActiveGroupMembersByGroupId(groupid[0].groupid);
   if (!groupMembers || groupMembers.length === 0) {
@@ -492,7 +491,6 @@ export async function getRemainingRankingsForSessionAction(consensusSessionId: n
   if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
     throw new Error('Not a member of group');
   }
-
   const currentSessionResp = await getConsensusSession(consensusSessionId);
   if (!currentSessionResp || currentSessionResp.length === 0
   || typeof currentSessionResp[0]?.sessionstatus !== 'number') {
@@ -578,6 +576,28 @@ export async function hasConsensusOnRankingAction(consensusSessionId: number, ra
   return _hasConsensusOnRanking(consensusSessionId, groupid[0].groupid, rankingValue);
 }
 
+/*********** MULTI FUNCTIONAL CALLS ***********/
+export async function getVotingRoundMultiAction(consensusSessionId: number) {
+  const remainingRankings = await getRemainingRankingsForSessionAction(consensusSessionId);
+  if (!remainingRankings) {
+    throw new Error('No remaining rankings found');
+  } else {
+    const groupid = await getActiveGroupIdBySessionId(consensusSessionId);
+    if (!groupid || groupid.length === 0 || typeof groupid[0].groupid !== 'number') {
+      throw new Error('Not a member of group');
+    }
+    return {
+      remainingRankings: remainingRankings[0],
+      currentVotesForRanking: await getCurrentVotesForSessionByRanking('walletaddress', consensusSessionId, groupid[0].groupid, remainingRankings[0]),
+      remainingAttendees: await getRemainingAttendeesForSessionAction(consensusSessionId),
+      groupMemberCount: await getGroupMemberCountAction(consensusSessionId),
+      hasConsensusOnRanking: await hasConsensusOnRankingAction(consensusSessionId, remainingRankings[0])
+    }
+  }
+}
+
+
+/*********** PRIVATE ***********/
 async function _hasConsensusOnRanking(consensusSessionId: number, groupid: number, rankingValue: number): Promise<boolean> {
   const counts: { id: string, count: number }[] = await getCurrentVotesForSessionByRanking('userid', consensusSessionId, groupid, rankingValue);
   if (!counts || counts.length === 0) {

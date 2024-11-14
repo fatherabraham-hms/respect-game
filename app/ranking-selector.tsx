@@ -1,19 +1,17 @@
 'use client';
 
 import { RespectUser } from '@/lib/dtos/respect-user.dto';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useContext, useEffect, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import {
   ConsensusSessionSetupModel,
   Vote
 } from '@/lib/models/consensus-session-setup.model';
 import {
+  getConsensusSetupAction,
   getCurrentVotesForSessionByRankingAction,
-  getGroupMemberCountAction,
   getRemainingAttendeesForSessionAction,
-  getRemainingRankingsForSessionAction,
-  hasConsensusOnRankingAction,
-  isLoggedInUserAdmin,
+  getVotingRoundMultiAction,
   setSingleRankingConsensusStatusAction,
   setSingleVoteAction
 } from '@/app/actions';
@@ -21,114 +19,77 @@ import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { VOTING_ROUND_POLLING_INTERVAL } from '../data/constants/app_constants';
 import * as React from 'react';
-import {
-  Box,
-  chakra,
-  Container,
-  Divider,
-  Spinner
-} from '@chakra-ui/react';
+import { Box, chakra, Container, Divider, Spinner } from '@chakra-ui/react';
+import { AuthContext } from '../data/context/Contexts';
 
 // TODO: https://tailwindcomponents.com/component/radio-buttons
 
 export function RankingSelector({
-  consensusSessionId,
-  rankingConfig,
-  setSession
+  consensusSessionId
 }: {
   consensusSessionId: number;
-  rankingConfig: ConsensusSessionSetupModel;
-  setSession: (session: ConsensusSessionSetupModel) => void;
 }) {
   const router = useRouter();
   const [votingRound, setVotingRound] = useState<Vote[]>([]);
   const [currentRankNumber, setCurrentRankNumber] = useState<number | null>(
     null
   );
-  const [isAdmin, setIsAdmin] = useState(false);
   const [consensusReached, setConsensusReached] = useState(false);
   const [hasClickedRadionButton, setHasClickedRadionButton] = useState(false);
   const [groupCount, setGroupCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
+  const [rankingConfig, setRankingConfig] = useState({
+    groupNum: 1,
+    attendees: [],
+    rankingScheme: 'numeric-descending',
+    votes: []
+  } as ConsensusSessionSetupModel | null);
+  const authContext = useContext(AuthContext);
 
-  const fetchAvailableRankings = async (): Promise<number | null> => {
-    return getRemainingRankingsForSessionAction(consensusSessionId).then(
-      (remainingRankings: Array<number> | undefined) => {
-        if (
-          rankingConfig.rankingScheme === 'numeric-descending' &&
-          remainingRankings
-        ) {
-          if (remainingRankings.length > 0) {
-            setCurrentRankNumber(remainingRankings[0]);
-            return remainingRankings[0] as number;
-          }
-          if (remainingRankings.length === 0) {
-            setCurrentRankNumber(0);
-            return 0;
-          }
-          return null;
-        }
-        return null;
-      }
-    );
-  };
-
-  // When the ranking changes, fetch the current voting round
-  const fetchVotingRound = async (ranking: number | null) => {
-    if (ranking === null || ranking === 0) {
-      return;
-    }
-    const currentVotesResp = await getCurrentVotesForSessionByRankingAction(
-      consensusSessionId,
-      ranking
-    );
-    if (Array.isArray(currentVotesResp) && currentVotesResp.length > 0) {
-      setVotingRound(currentVotesResp as Vote[]);
-    }
-    const totalVotes = currentVotesResp.reduce(
-      (acc, ranking) => acc + ranking.count,
-      0
-    );
-    setTotalCount(totalVotes);
-    updateAttendees(consensusSessionId);
-  };
-
-  const fetchConsensusStatus = async (ranking: number | null) => {
-    hasConsensusOnRankingAction(consensusSessionId, ranking || 0).then(
-      (hasConsensus) => {
-        setConsensusReached(hasConsensus);
-      }
-    );
+  const fetchConsensusSetup = async (): Promise<void> => {
+    getConsensusSetupAction(consensusSessionId).then((setup) => {
+      setRankingConfig(setup);
+      setLoading(false);
+    });
   };
 
   // Short Poll: first execute the fetchAvailableRankings function, then pass the result to fetchConsensusStatus
-  const fetchCurrentVotingInfo = async () => {
-    return fetchAvailableRankings().then((ranking) => {
-      fetchConsensusStatus(ranking);
-      return fetchVotingRound(ranking);
+  const fetchVotingRoundMultiAction = async () => {
+    setLoading(true);
+    getVotingRoundMultiAction(consensusSessionId).then((resp) => {
+      setLoading(false);
+      setGroupCount(resp?.groupMemberCount);
+      setTotalCount(
+        resp?.currentVotesForRanking.reduce((acc: number, ranking: Vote) => acc + ranking.count, 0) || 0
+      );
+      setConsensusReached(resp?.hasConsensusOnRanking);
+      setRankingConfig({
+        groupNum: 1,
+        attendees: resp?.remainingAttendees as RespectUser[] || [],
+        rankingScheme: 'numeric-descending',
+        votes: resp?.currentVotesForRanking || []
+      });
+      setVotingRound(resp?.currentVotesForRanking || []);
     });
-  };
+  }
+
+  // INITIALIZE
+  if (consensusSessionId) {
+    if (rankingConfig?.attendees.length === 0) {
+      fetchConsensusSetup();
+    }
+  }
 
   useEffect(() => {
-    getGroupMemberCountAction(consensusSessionId).then((count:number) => {
-      setGroupCount(count);
-    });
-
-    isLoggedInUserAdmin().then((isAdmin) => {
-      setIsAdmin(isAdmin);
-    });
-    fetchCurrentVotingInfo().then(() => {
-      setLoading(false);
-    });
+    fetchVotingRoundMultiAction();
 
     const interval = setInterval(
-      fetchCurrentVotingInfo,
+      fetchVotingRoundMultiAction,
       VOTING_ROUND_POLLING_INTERVAL
     );
     setIntervalId(interval);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -144,10 +105,10 @@ export function RankingSelector({
     if (!walletAddress || !attestation) {
       return;
     }
-    const user = rankingConfig.attendees.find(
+    const user = rankingConfig?.attendees.find(
       (user: RespectUser) => user.walletaddress === walletAddress
     );
-    if (user && rankingConfig.rankingScheme === 'numeric-descending') {
+    if (user && rankingConfig?.rankingScheme === 'numeric-descending') {
       handleNumericVote(user);
     }
   }
@@ -178,16 +139,16 @@ export function RankingSelector({
   function updateAttendees(consSessionIdToUpdate: number) {
     getRemainingAttendeesForSessionAction(consSessionIdToUpdate).then(
       (remainingAttendees: Array<any>) => {
-        if (remainingAttendees.length === 0) {
-          toast.success(
-            'You have successfully reached consensus on this topic!'
-          );
-        } else {
+        if (rankingConfig && remainingAttendees.length > 0) {
           rankingConfig.attendees = remainingAttendees;
-          setSession({
+          setRankingConfig({
             ...rankingConfig,
             votes: []
           });
+        } else {
+          toast.success(
+            'You have successfully reached consensus on this topic!'
+          );
         }
       }
     );
@@ -196,14 +157,14 @@ export function RankingSelector({
   function nextLevel() {
     if (currentRankNumber === null) return;
     const nextRankNumber =
-      rankingConfig.rankingScheme === 'numeric-descending'
+      rankingConfig?.rankingScheme === 'numeric-descending'
         ? currentRankNumber - 1
         : currentRankNumber + 1;
     setCurrentRankNumber(nextRankNumber);
     setSingleRankingConsensusStatusAction(consensusSessionId, currentRankNumber)
       .then(() => {
         toast.success('Consensus Saved!');
-        fetchVotingRound(nextRankNumber);
+        fetchVotingRoundMultiAction();
       })
       .catch(() => toast.error('Oops! An error occured, please try again!'));
   }
@@ -233,32 +194,32 @@ export function RankingSelector({
           boxShadow="lg"
           overflow="hidden"
         >
-
-            <chakra.h3
-              fontSize="xl"
-              fontWeight="bold"
-              textAlign="center"
-              color="gray.600"
-            >
-              Voting Level: {currentRankNumber}
-            </chakra.h3>
-            <chakra.h4
-              fontSize="md"
-              fontWeight="bold"
-              textAlign="center"
-              color="gray.600">
-              {totalCount} Votes cast by {groupCount} Attendees
-            </chakra.h4>
+          <chakra.h3
+            fontSize="xl"
+            fontWeight="bold"
+            textAlign="center"
+            color="gray.600"
+          >
+            Voting Level: {currentRankNumber}
+          </chakra.h3>
+          <chakra.h4
+            fontSize="md"
+            fontWeight="bold"
+            textAlign="center"
+            color="gray.600"
+          >
+            {totalCount} Votes cast by {groupCount} Attendees
+          </chakra.h4>
 
           <Divider />
-          {consensusReached && isAdmin && (
+          {consensusReached && authContext?.isAdmin && (
             <Alert
               message={'You have successfully reached consensus on this topic!'}
               variant={'success'}
               callback={nextLevel}
             />
           )}
-          {consensusReached && !isAdmin && (
+          {consensusReached && !authContext?.isAdmin && (
             <Alert
               message={'You have successfully reached consensus on this topic!'}
               variant={'success'}
