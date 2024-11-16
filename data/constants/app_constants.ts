@@ -4,4 +4,4 @@ export const RANKING_SCHEMES = {
   'numeric-ascending': { label: '6 (best) - 1 (worst)', startingRank: 6 },
   };
 export const SESSION_POLLING_INTERVAL = 10000;
-export const VOTING_ROUND_POLLING_INTERVAL = 5000;
+export const VOTING_ROUND_POLLING_INTERVAL = 10000;

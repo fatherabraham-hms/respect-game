@@ -26,7 +26,9 @@ export function SessionList() {
 
   const getSessions = async () => {
     return getRecentSessionsForUserWalletAddressAction().then((sessions) => {
-      setRecentSessions(sessions);
+      if (sessions) {
+        setRecentSessions(sessions);
+      }
       setIsLoading(false);
     });
   };
@@ -48,15 +50,18 @@ export function SessionList() {
   }
 
   function showContent() {
-    return !isLoading && recentSessions && recentSessions.length > 0;
+    return !isLoading && recentSessions;
   }
 
   if (!showContent()) {
     return <Spinner m={10} />
   }
 
+  if (!isLoading && recentSessions && recentSessions?.length === 0) {
+    return <div><h2>You do not have any sessions yet, check with a leader to get one started!</h2></div>
+  }
+
   return (
-    (
       <TableContainer>
         <Table colorScheme="gray" size="sm">
           {/*<Thead>*/}
@@ -87,6 +92,5 @@ export function SessionList() {
           </Tbody>
         </Table>
       </TableContainer>
-    )
-  );
+    );
 }

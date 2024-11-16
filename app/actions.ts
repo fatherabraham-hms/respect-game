@@ -360,7 +360,8 @@ export async function getConsensusSetupAction(consensusSessionId: number): Promi
 export async function getRecentSessionsForUserWalletAddressAction() {
   const beSession = await isAuthorized();
   if (!beSession || !beSession.sessionid || !beSession.walletaddress || !beSession.userid) {
-    throw new Error('Not authorized');
+    debug('getRecentSessionsForUserWalletAddressAction: Not authorized');
+    return null;
   }
   return getRecentSessionsForUserWalletAddress(beSession.walletaddress);
 }

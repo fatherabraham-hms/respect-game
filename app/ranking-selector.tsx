@@ -1,7 +1,7 @@
 'use client';
 
 import { RespectUser } from '@/lib/dtos/respect-user.dto';
-import { Suspense, useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import {
   ConsensusSessionSetupModel,
@@ -18,7 +18,7 @@ import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { VOTING_ROUND_POLLING_INTERVAL } from '../data/constants/app_constants';
 import * as React from 'react';
-import { Box, chakra, Container, Divider, Spinner } from '@chakra-ui/react';
+import { Box, chakra, Container, Divider, Progress } from '@chakra-ui/react';
 import { AuthContext } from '../data/context/Contexts';
 
 // TODO: https://tailwindcomponents.com/component/radio-buttons
@@ -184,7 +184,6 @@ export function RankingSelector({
   // <pre>Rankings: { JSON.stringify(rankings[currentRankNumber], null, 2) }</pre>
 
   return (
-    <Suspense fallback={<Spinner m={10} />}>
       <Container maxW="6xl" py={10} px={4}>
         <Box
           border="1px solid"
@@ -225,6 +224,7 @@ export function RankingSelector({
               variant={'success'}
             />
           )}
+          {loading && <Progress size='xs' isIndeterminate colorScheme={'cyan'} />}
           <form className="border shadow-sm rounded-lg">
             {rankingConfig?.attendees?.map((user: RespectUser) => (
               <div key={user.walletaddress} className={'flex items-center'}>
@@ -276,6 +276,5 @@ export function RankingSelector({
           </form>
         </Box>
       </Container>
-    </Suspense>
   );
 }
