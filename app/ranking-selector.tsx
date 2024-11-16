@@ -164,6 +164,15 @@ export function RankingSelector({
     setSingleRankingConsensusStatusAction(consensusSessionId, currentRankNumber)
       .then(() => {
         toast.success('Consensus Saved!');
+        setHasClickedRadionButton(false);
+        rankingConfig?.attendees.forEach((user: RespectUser) => {
+          const radio = document.querySelector(
+            `input[type=radio][value=${user.walletaddress}]`
+          ) as HTMLInputElement;
+          if (radio) {
+            radio.checked = false;
+          }
+        });
         fetchVotingRoundMultiAction();
       })
       .catch(() => toast.error('Oops! An error occured, please try again!'));
