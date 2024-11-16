@@ -24,7 +24,7 @@ import {
   getConsensusSession,
   getConsensusWinnersRankingsAndWalletAddresses,
   getRecentSessionsForUserWalletAddress,
-  createPrivyMap
+  createPrivyMap, SelectUserBeSession
 } from '@/lib/db';
 import { User } from '@privy-io/server-auth';
 import { PrivyClient, AuthTokenClaims } from "@privy-io/server-auth";
@@ -139,7 +139,7 @@ async function isMemberOfSessionAction(consensusSessionId: number, beSession?: U
   if (!beSessionFresh || !beSessionFresh.sessionid || !beSessionFresh.walletaddress) {
     return false;
   }
-  const isAdminFresh = await isLoggedInUserAdmin();
+  const isAdminFresh = await _isLoggedInUserAdmin(beSessionFresh);
   const isMember = await getFirstMatchingMemberOfSession(consensusSessionId, beSessionFresh.walletaddress);
   return isAdminFresh || isMember?.length === 1;
 }
@@ -276,6 +276,15 @@ export async function isLoggedInUserAdmin(): Promise<boolean> {
   return false;
 }
 
+async function _isLoggedInUserAdmin(beSession: SelectUserBeSession): Promise<boolean> {
+  debug('isLoggedInUserAdmin: checking if user is admin');
+  const admins = process.env.RESPECT_GAME_ADMINS?.split(',') || [];
+  if (beSession && beSession.walletaddress) {
+    return admins?.some((addr) => addr.toLowerCase() === beSession.walletaddress?.toLowerCase());
+  }
+  return false;
+}
+
 /*********** CONSENSUS SESSIONS ***********/
 const defaultConsensusSession: ConsensusSessionDto = {
   sessionid: 0,
@@ -400,7 +409,7 @@ export async function setSingleRankingConsensusStatusAction(consensusSessionId: 
   if (!beSession || !beSession.sessionid || !beSession.walletaddress || !beSession.userid) {
     throw new Error('Not authorized');
   }
-  const isAdmin = await isLoggedInUserAdmin();
+  const isAdmin = await _isLoggedInUserAdmin(beSession);
   const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
   if (!isAdmin && !isMemberofSession) {
     throw new Error('Not a member of session');
@@ -458,7 +467,7 @@ export async function getRemainingAttendeesForSessionAction(consensusSessionId: 
   if (!beSession || !beSession.sessionid || !beSession.walletaddress || !beSession.userid) {
     throw new Error('Not authorized');
   }
-  const isAdmin = await isLoggedInUserAdmin();
+  const isAdmin = await _isLoggedInUserAdmin(beSession);
   const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
   if (!isAdmin && !isMemberofSession) {
     throw new Error('Not a member of session');
@@ -514,7 +523,7 @@ export async function getConsensusSessionWinnersAction(consensusSessionId: numbe
   if (!beSession || !beSession.sessionid || !beSession.walletaddress || !beSession.userid) {
     throw new Error('Not authorized');
   }
-  const isAdmin = await isLoggedInUserAdmin();
+  const isAdmin = await _isLoggedInUserAdmin(beSession);
   const isMemberofSession = await isMemberOfSessionAction(consensusSessionId);
   if (!isAdmin && !isMemberofSession) {
     throw new Error('Not a member of session');
@@ -616,7 +625,7 @@ async function _createContext(consensusSessionId: number): Promise<UserBeContext
   if (!beSession || !beSession.sessionid || !beSession.walletaddress || !beSession.userid) {
     throw new Error('Not authorized');
   }
-  const isAdmin = await isLoggedInUserAdmin();
+  const isAdmin = await _isLoggedInUserAdmin(beSession);
   const isMemberofSession = await isMemberOfSessionAction(consensusSessionId, beSession, isAdmin);
   if (!isAdmin && !isMemberofSession) {
     throw new Error('Not a member of session');
