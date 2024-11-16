@@ -9,7 +9,6 @@ import {
 } from '@/lib/models/consensus-session-setup.model';
 import {
   getConsensusSetupAction,
-  getCurrentVotesForSessionByRankingAction,
   getRemainingAttendeesForSessionAction,
   getVotingRoundMultiAction,
   setSingleRankingConsensusStatusAction,
@@ -60,6 +59,7 @@ export function RankingSelector({
     setLoading(true);
     getVotingRoundMultiAction(consensusSessionId).then((resp) => {
       setLoading(false);
+      setCurrentRankNumber(resp?.remainingRankings[0]);
       setGroupCount(resp?.groupMemberCount);
       setTotalCount(
         resp?.currentVotesForRanking.reduce((acc: number, ranking: Vote) => acc + ranking.count, 0) || 0

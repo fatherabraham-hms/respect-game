@@ -1,9 +1,9 @@
 export type UserBeSessionsModel = {
   sessionid?: string;
-  userid: number;
-  ipaddress: string;
-  jwt: string;
-  walletaddress: string;
+  userid: number | null;
+  ipaddress: string | null;
+  jwt: string | null;
+  walletaddress: string | null;
   jsondata?: any;
   expires?: Date;
   created?: Date;
