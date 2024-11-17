@@ -161,19 +161,19 @@ export async function login(user: User) {
     if (user && user.wallet?.address) {
       cookies().set('activeWalletAddress', user.wallet?.address);
       const ipAddress = (headers().get('x-forwarded-for') ?? '127.0.0.1').split(',')[0];
-      const accountIdResp = await createUserAccountIfNotExists(user);
-      if (accountIdResp === null || accountIdResp.length === 0) {
-        throw new Error('no account id found, could not create..');
+      const accountId = await createUserAccountIfNotExists(user);
+      if (accountId === null) {
+        throw new Error('Could not create user profile due to an error..');
       } else {
         // create privy map and update user table with mapid
-        await createPrivyMap(verifiedClaims, accountIdResp[0].id);
+        await createPrivyMap(verifiedClaims, accountId);
       }
       const validSession = await getBeUserSession(ipAddress, verifiedClaims.userId, user.wallet?.address);
       if (validSession?.length === 0) {
         debug(`creating be session for: ${user.wallet?.address}`);
         await createBeUserSession({
           sessionid: undefined,
-          userid: accountIdResp?.[0]?.id || 0,
+          userid: accountId || 0,
           ipaddress: ipAddress,
           walletaddress: user.wallet?.address,
           jwt: verifiedClaims.userId,
@@ -194,18 +194,22 @@ export async function login(user: User) {
  * Caution - this method must remain private so it does not expose the userid
  * @param user
  */
-async function createUserAccountIfNotExists(user: User): Promise<{id: number}[] | null> {
+async function createUserAccountIfNotExists(user: User): Promise<number|null> {
   const address = user.wallet?.address;
+  let userId: number | null = null;
   if (!address) {
     return null;
   }
   const useridResp = await getUserIdByWalletAddress(address);
   if (!useridResp || useridResp.length === 0) {
-    await createUserProfile(user);
+    const createProfileResp = await createUserProfile(user);
+    if (createProfileResp && createProfileResp.length > 0 && typeof createProfileResp[0].id === 'number') {
+      userId = createProfileResp[0].id;
+    }
   } else if (useridResp && useridResp.length > 0 && typeof useridResp[0].id === 'number') {
-    return useridResp;
+    userId = useridResp[0].id;
   }
-  return null;
+  return userId;
 }
 
 export async function isLoggedInAction(address: string): Promise<boolean> {
