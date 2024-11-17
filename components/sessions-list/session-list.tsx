@@ -26,7 +26,9 @@ export function SessionList() {
 
   const getSessions = async () => {
     return getRecentSessionsForUserWalletAddressAction().then((sessions) => {
-      setRecentSessions(sessions);
+      if (sessions) {
+        setRecentSessions(sessions);
+      }
       setIsLoading(false);
     });
   };
@@ -37,26 +39,40 @@ export function SessionList() {
     return () => clearInterval(interval);
   }, []);
 
-  function getSessionHref(session: { sessionid: number; sessionStatus: number | null }): Url {
+  function getSessionHref(session: {
+    sessionid: number;
+    sessionStatus: number | null;
+  }): Url {
     if (session.sessionStatus === 1 || session.sessionStatus === 2) {
       return `/play/${session.sessionid}/final`;
     }
     return `/session/${session.sessionid}`;
   }
 
+  function showContent() {
+    return !isLoading && recentSessions;
+  }
+
+  if (!showContent()) {
+    return <Spinner m={10} />
+  }
+
+  if (!isLoading && recentSessions && recentSessions?.length === 0) {
+    return <div><h2>You do not have any sessions yet, check with a leader to get one started!</h2></div>
+  }
+
   return (
-    isLoading && <Spinner m={10}/>
-    || <TableContainer>
-      <Table colorScheme="gray" size="sm">
-        {/*<Thead>*/}
-        {/*  <Tr>*/}
-        {/*    <Th>Session Number</Th>*/}
-        {/*    <Th>Status</Th>*/}
-        {/*    <Th>Created</Th>*/}
-        {/*  </Tr>*/}
-        {/*</Thead>*/}
-        <Tbody>
-          {recentSessions.map((session) => (
+      <TableContainer>
+        <Table colorScheme="gray" size="sm">
+          {/*<Thead>*/}
+          {/*  <Tr>*/}
+          {/*    <Th>Session Number</Th>*/}
+          {/*    <Th>Status</Th>*/}
+          {/*    <Th>Created</Th>*/}
+          {/*  </Tr>*/}
+          {/*</Thead>*/}
+          <Tbody>
+            {recentSessions.map((session) => (
               <Tr key={session.sessionid}>
                 <Td>
                   <Link href={getSessionHref(session)}>
@@ -73,8 +89,8 @@ export function SessionList() {
                 <Td>{session.updated.toLocaleDateString()}</Td>
               </Tr>
             ))}
-        </Tbody>
-      </Table>
-    </TableContainer>
-  );
+          </Tbody>
+        </Table>
+      </TableContainer>
+    );
 }

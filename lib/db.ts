@@ -72,7 +72,7 @@ export async function createPrivyMap(privyMapData: any, userId: number) {
 // ************** UserBeSessionPgTable ****************** //
 export type SelectUserBeSession = typeof userBeSessions.$inferSelect;
 
-export async function getBeUserSession(ipAddress: string, walletAddress: string, jwt: string) {
+export async function getBeUserSession(ipAddress: string, walletAddress: string, jwt: string): Promise<SelectUserBeSession[]> {
   return db.select().from(userBeSessions)
     .where(and(
       eq(userBeSessions.ipaddress, ipAddress),
