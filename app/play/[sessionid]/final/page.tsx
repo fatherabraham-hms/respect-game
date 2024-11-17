@@ -1,20 +1,29 @@
 'use client';
 import { getConsensusSessionWinnersAction } from '@/app/actions';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ConsensusWinnerModel } from '@/lib/models/consensus-winner.model';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { useOrclient } from '@ordao/privy-react-orclient';
 import { Spinner } from '@chakra-ui/react';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { hexlify } from '@ethersproject/bytes';
+import toast from 'react-hot-toast';
+import { randomBytes } from 'crypto';
 
 export default function IndexPage({
-  params
-}: {
+                                    params
+                                  }: {
   params: { sessionid: string };
 }) {
   const [consensusRankings, setConsensusRankings] = useState<
     ConsensusWinnerModel[]
   >([]);
   const [isLoading, setLoading] = useState(true);
+  const router = useRouter();
+  const {
+    user,
+  } = usePrivy();
 
   // const contact = getContract({
   //   address: '',
@@ -41,10 +50,45 @@ export default function IndexPage({
         }
       }
     );
-  }, []);
+  });
+
+  const wallet = user?.wallet;
+  const conWallets = useWallets();
+  // TODO: Is this the right way to select a wallet?
+  const userWallet = useMemo(() => {
+    if (conWallets && conWallets.ready) {
+      return conWallets.wallets.find(w => w.address === wallet?.address);
+    }
+  }, [wallet]);
+
+  const orclient = useOrclient('op-sepolia-1', userWallet);
+
+  async function makeOrecProposal() {
+    console.log('click');
+    if (orclient) {
+      toast.loading('Making proposal..');
+    const rankings = consensusRankings.map((winner) => winner.walletaddress);
+
+      // This request object has to be the same for all participants of a breakout room.
+      await orclient.proposeBreakoutResult({
+        groupNum: 1,
+        meetingNum: 10,
+        rankings: rankings,
+        // Metadata field is optional.
+        metadata: {
+          // Could use this to provide names for each rank
+          propDescription: hexlify(randomBytes(8))
+        }
+      });
+    } else {
+      toast.error('Could not connect to orclient/blockchain');
+    }
+  }
 
   function pushOnChain() {
-    window.open('https://optimismfractal.web.app/', '_blank', 'noopener,noreferrer');
+    makeOrecProposal().then(() => {
+      toast.success('Submitted On Chain!');
+    });
   }
 
   return (
