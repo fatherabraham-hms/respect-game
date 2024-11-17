@@ -59,7 +59,9 @@ export function RankingSelector({
     setLoading(true);
     getVotingRoundMultiAction(consensusSessionId).then((resp) => {
       setLoading(false);
-      setCurrentRankNumber(resp?.remainingRankings[0]);
+      if (resp?.remainingRankings && resp?.remainingRankings.length > 0) {
+        setCurrentRankNumber(resp?.remainingRankings[0]);
+      }
       setGroupCount(resp?.groupMemberCount);
       setTotalCount(
         resp?.currentVotesForRanking.reduce((acc: number, ranking: Vote) => acc + ranking.count, 0) || 0
@@ -72,17 +74,20 @@ export function RankingSelector({
         votes: resp?.currentVotesForRanking || []
       });
       setVotingRound(resp?.currentVotesForRanking || []);
+      if (resp?.remainingAttendees.length === 0) {
+        clearInterval(intervalId!);
+        router.push(`/play/${consensusSessionId}/final`);
+      }
     });
   }
 
-  // INITIALIZE
-  if (consensusSessionId) {
-    if (rankingConfig?.attendees.length === 0) {
-      fetchConsensusSetup();
-    }
-  }
-
   useEffect(() => {
+    // INITIALIZE
+    if (consensusSessionId) {
+      if (rankingConfig?.attendees.length === 0) {
+        fetchConsensusSetup();
+      }
+    }
     fetchVotingRoundMultiAction();
 
     const interval = setInterval(
@@ -92,11 +97,6 @@ export function RankingSelector({
     setIntervalId(interval);
     return () => clearInterval(interval);
   }, []);
-
-  if (currentRankNumber === 0) {
-    clearInterval(intervalId!);
-    router.push(`/play/${consensusSessionId}/final`);
-  }
 
   function setRanking(
     walletAddress: string,
@@ -136,24 +136,6 @@ export function RankingSelector({
       .catch(() => toast.error('Oops! An error occured, please try again!'));
   }
 
-  function updateAttendees(consSessionIdToUpdate: number) {
-    getRemainingAttendeesForSessionAction(consSessionIdToUpdate).then(
-      (remainingAttendees: Array<any>) => {
-        if (rankingConfig && remainingAttendees.length > 0) {
-          rankingConfig.attendees = remainingAttendees;
-          setRankingConfig({
-            ...rankingConfig,
-            votes: []
-          });
-        } else {
-          toast.success(
-            'You have successfully reached consensus on this topic!'
-          );
-        }
-      }
-    );
-  }
-
   function nextLevel() {
     if (currentRankNumber === null) return;
     const nextRankNumber =
@@ -165,14 +147,16 @@ export function RankingSelector({
       .then(() => {
         toast.success('Consensus Saved!');
         setHasClickedRadionButton(false);
-        rankingConfig?.attendees.forEach((user: RespectUser) => {
-          const radio = document.querySelector(
-            `input[type=radio][value=${user.walletaddress}]`
-          ) as HTMLInputElement;
-          if (radio) {
-            radio.checked = false;
-          }
-        });
+        if (rankingConfig?.attendees && rankingConfig?.attendees.length > 0) {
+          rankingConfig.attendees.forEach((user: RespectUser) => {
+            const radio = document.querySelector(
+              `input[type=radio][value=${user.walletaddress}]`
+            ) as HTMLInputElement;
+            if (radio) {
+              radio.checked = false;
+            }
+          });
+        }
         fetchVotingRoundMultiAction();
       })
       .catch(() => toast.error('Oops! An error occured, please try again!'));
@@ -235,7 +219,7 @@ export function RankingSelector({
           )}
           {loading && <Progress size='xs' isIndeterminate colorScheme={'cyan'} />}
           <form className="border shadow-sm rounded-lg">
-            {rankingConfig?.attendees?.map((user: RespectUser) => (
+            {rankingConfig && rankingConfig?.attendees?.length > 0 && rankingConfig?.attendees?.map((user: RespectUser) => (
               <div key={user.walletaddress} className={'flex items-center'}>
                 <div className={'flex-grow-0 p-4'}>
                   <input

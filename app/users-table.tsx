@@ -18,6 +18,7 @@ import { Spinner } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@chakra-ui/react';
 import { SESSION_POLLING_INTERVAL } from '../data/constants/app_constants';
+import { RiCheckboxCircleFill } from 'react-icons/ri';
 
 
 export function UsersTable() {
@@ -118,7 +119,7 @@ function UserRow({ user, groupAddresses, setGroupAddresses }: {
       <TableCell>{user.username}</TableCell>
       <TableCell>
         {
-          user.loggedin && <Badge color={'green'}>Logged In</Badge>
+          user.loggedin && <RiCheckboxCircleFill color={'green'} size={24} />
         }
         {
           !user.loggedin && <Badge color={'red'}>Not Logged In</Badge>

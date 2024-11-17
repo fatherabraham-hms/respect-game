@@ -1,11 +1,8 @@
 'use client';
 import {
   Box,
-  chakra,
   ChakraProvider,
   Container,
-  Divider,
-  Flex
 } from '@chakra-ui/react';
 import { Link } from '@chakra-ui/next-js';
 import { Logo } from '@/components/icons';
@@ -108,17 +105,16 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                 boxShadow="lg"
                 overflow="hidden"
               >
-                <Flex justifyContent="left" p={5}>
-                  <chakra.h3
-                    fontSize="xl"
-                    fontWeight="bold"
-                    textAlign="center"
-                    color="gray.600"
-                  >
+                {/*<Flex justifyContent="left" p={5}>*/}
+                {/*  <chakra.h3*/}
+                {/*    fontSize="xl"*/}
+                {/*    fontWeight="bold"*/}
+                {/*    textAlign="center"*/}
+                {/*    color="gray.600"*/}
+                {/*  >*/}
 
-                  </chakra.h3>
-                </Flex>
-                <Divider />
+                {/*  </chakra.h3>*/}
+                {/*</Flex>*/}
                   {children}
               </Box>
             </Container>
