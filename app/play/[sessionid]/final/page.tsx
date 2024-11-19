@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation';
 import { useOrclient } from '@ordao/privy-react-orclient';
 import { Spinner } from '@chakra-ui/react';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
-import { hexlify } from '@ethersproject/bytes';
 import toast from 'react-hot-toast';
 import { randomBytes } from 'crypto';
 
@@ -67,19 +66,25 @@ export default function IndexPage({
     console.log('click');
     if (orclient) {
       toast.loading('Making proposal..');
-    const rankings = consensusRankings.map((winner) => winner.walletaddress);
+      const rankings = consensusRankings.map((winner) => winner.walletaddress);
+      const rankedNames = consensusRankings.reduce<string>((prev, current, index) => {
+        return prev + `, ${current.name}`;
+      }, "");
 
       // This request object has to be the same for all participants of a breakout room.
       await orclient.proposeBreakoutResult({
+        // TODO: set real groupNum and meetingNum
         groupNum: 1,
         meetingNum: 10,
         rankings: rankings,
         // Metadata field is optional.
         metadata: {
           // Could use this to provide names for each rank
-          propDescription: hexlify(randomBytes(8))
+          propTitle: `Session ${params.sessionid}`,
+          propDescription: rankedNames
         }
       });
+      console.log("Propose breakout returned");
     } else {
       toast.error('Could not connect to orclient/blockchain');
     }
