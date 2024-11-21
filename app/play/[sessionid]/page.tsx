@@ -1,42 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ConsensusSessionSetupModel } from '@/lib/models/consensus-session-setup.model';
+import { Suspense } from 'react';
 import { RankingSelector } from '@/app/ranking-selector';
-import { getConsensusSetupAction } from '@/app/actions';
+import * as React from 'react';
+import { Spinner } from '@chakra-ui/react';
 
-export default function IndexPage({ params }: { params: { sessionid: string } }) {
-  const [consensusSessionId, setConsensusSessionId] = useState<number>(0);
-  const [currentSessionSetup, setCurrentSessionSetup] = useState({
-    groupNum: 1,
-    attendees: [],
-    rankingScheme: 'numeric-descending',
-    votes: []
-  } as ConsensusSessionSetupModel | null);
-  const [loading, setLoading] = useState(true);
+export default function IndexPage({
+  params
+}: {
+  params: { sessionid: string };
+}) {
+  if (!params.sessionid) {
+    return null;
+  }
+  const consensusSessionId = parseInt(params.sessionid);
 
-  useEffect(() => {
-    if (params.sessionid.length > 0) {
-      const mySessionId = parseInt(params.sessionid);
-      setConsensusSessionId(mySessionId);
-      getConsensusSetupAction(mySessionId).then((consensusSessionSetup) => {
-        setCurrentSessionSetup(consensusSessionSetup);
-        setLoading(false);
-      });
-    }
-  }, []);
+  let visibleElements = <Spinner m={10} />;
 
-  let visibleElements = (<h1>Loading...</h1>);
-
-  if (currentSessionSetup !== null && consensusSessionId > 0) {
+  if (params?.sessionid !== null && consensusSessionId > 0) {
     visibleElements = (
       <RankingSelector
         consensusSessionId={consensusSessionId}
-        rankingConfig={currentSessionSetup}
-        setSession={setCurrentSessionSetup}
       />
     );
-  } else if (currentSessionSetup === null && !loading) {
+  } else if (params?.sessionid === null) {
     visibleElements = (
       <div className="flex items-center justify-center h-96">
         <h1 className="font-semibold text-lg md:text-2xl">
@@ -46,12 +33,5 @@ export default function IndexPage({ params }: { params: { sessionid: string } })
     );
   }
 
-  return (
-    <main className="flex flex-1 flex-col p-4 md:p-6">
-      <div className="flex items-center mb-8">
-        <h1 className="font-semibold text-lg md:text-2xl">Cast your Vote</h1>
-      </div>
-      {visibleElements}
-    </main>
-  );
+  return <Suspense fallback={<Spinner m={10} />}>{visibleElements}</Suspense>;
 }

@@ -8,7 +8,7 @@ import {
   TableBody,
   Table
 } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+
 import { useRouter } from 'next/navigation';
 import { RespectUser } from '@/lib/dtos/respect-user.dto';
 import { useEffect, useState } from 'react';
@@ -16,14 +16,9 @@ import { createConsensusSessionAndUserGroupAction, getUsers } from '@/app/action
 import toast from 'react-hot-toast';
 import { Spinner } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
-import { PrivyClient } from '@privy-io/server-auth';
-import { PrivyProvider } from '@privy-io/react-auth';
-import { HatsClient } from "@hatsprotocol/sdk-v1-core";
-import { createPublicClient, http, PublicClient,  } from 'viem'; 
-import { optimism } from 'viem/chains'; 
-import { usePrivy } from "@privy-io/react-auth";
-
-
+import { Button } from '@chakra-ui/react';
+import { SESSION_POLLING_INTERVAL } from '../data/constants/app_constants';
+import { RiCheckboxCircleFill } from 'react-icons/ri';
 
 
 export function UsersTable() {
@@ -33,10 +28,6 @@ export function UsersTable() {
   const [groupAddresses, setGroupAddresses] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const offset = 0;
-  const { connectWallet } = usePrivy();
-  const [walletClient, setWalletClient] = useState<any>(null); 
-  
-
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -50,7 +41,7 @@ export function UsersTable() {
       }
     };
     fetchUserData();
-    const interval = setInterval(fetchUserData, 5000);
+    const interval = setInterval(fetchUserData, SESSION_POLLING_INTERVAL);
     return () => clearInterval(interval);
   }, [query, offset]);
 
@@ -71,10 +62,8 @@ export function UsersTable() {
     <>
       {(
         <Button
-          className="mt-4 w-40 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           disabled={groupAddresses?.length <= 1}
-          onClick={() => createSessionHandler()}
-        >
+          onClick={() => createSessionHandler()}>
           Create Session ({groupAddresses?.length || 0})
         </Button>
       )}
@@ -130,7 +119,7 @@ function UserRow({ user, groupAddresses, setGroupAddresses }: {
       <TableCell>{user.username}</TableCell>
       <TableCell>
         {
-          user.loggedin && <Badge color={'green'}>Logged In</Badge>
+          user.loggedin && <RiCheckboxCircleFill color={'green'} size={24} />
         }
         {
           !user.loggedin && <Badge color={'red'}>Not Logged In</Badge>
