@@ -15,6 +15,10 @@ import { usePrivy } from '@privy-io/react-auth';
 import { AuthContext, AuthContextType } from '../data/context/Contexts';
 import { getUserProfile, isLoggedInUserAdmin } from '@/app/actions';
 import Cookies from 'js-cookie';
+import { HATS_CONTRACT, OP_MAIN_RPC } from '../data/constants/app_constants';
+import { HatsClient } from "@hatsprotocol/sdk-v1-core";
+import { createPublicClient, http, PublicClient,  } from 'viem';
+import { optimism } from 'viem/chains';
 
 export function AppFrame({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -25,14 +29,26 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
     isFirstAuthContextInit: true,
     isAdmin: false,
     isLoggedIn: false,
-    hasProfile: false
+    hasProfile: false,
+    hasHat: false
+  });
+  const [isWearer, setIsWearer] = useState<boolean | null>(null);
+  const hatId = BigInt(HATS_CONTRACT);
+  const publicClient = createPublicClient({
+    chain: optimism,
+    transport: http(OP_MAIN_RPC),
+  }) as PublicClient;
+
+  const hatsClient = new HatsClient({
+    chainId: 10,
+    publicClient: publicClient,
   });
 
   useEffect(() => {
     setIsMounted(true);
     if (ready && authenticated && authContext?.isFirstAuthContextInit && user && user?.wallet?.address) {
       Cookies.set('activeWalletAddress', user.wallet.address, { expires: 1 });
-      fetchBackendAuthContext();
+      fetchBackendAuthContext().then();
     }
 
     if (ready && !authenticated) {
@@ -47,20 +63,30 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  function fetchBackendAuthContext() {
+  async function fetchBackendAuthContext() {
     if (ready && authenticated && user?.wallet && user.wallet.address) {
-      Promise.all([
-        isLoggedInUserAdmin(),
-        getUserProfile(user.wallet.address)
-      ]).then(([isAdmin, profile]) => {
+      try {
+        const [isAdmin, profile, isHatWearer] = await Promise.all([
+          isLoggedInUserAdmin(),
+          getUserProfile(user.wallet.address),
+          hatsClient.isWearerOfHat({
+            wearer: user.wallet.address as `0x${string}`, // Type assertion
+            hatId,
+          }),
+        ]);
+
         setAuthContext({
           isFirstAuthContextInit: false,
           isAdmin,
           isLoggedIn: authenticated,
-          hasProfile: profile?.name !== '' && profile?.username !== ''
+          hasProfile: profile?.name !== '' && profile?.username !== '',
+          hasHat: isHatWearer
         });
+      } catch (error) {
+        console.error("Error fetching auth context:", error);
+      } finally {
         setLoading(false);
-      });
+      }
     }
   }
 

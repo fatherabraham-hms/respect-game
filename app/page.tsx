@@ -12,9 +12,9 @@ export default function IndexPage() {
   function routeToAppropriatePage() {
     if (authContext.isLoggedIn && !authContext.hasProfile) {
       router.push('/profile');
-    } else if (authContext.hasProfile && authContext.isAdmin) {
+    } else if (authContext.hasProfile && (authContext.isAdmin || authContext.hasHat)) {
       router.push('/groups');
-    } else if (authContext.hasProfile && !authContext.isAdmin) {
+    } else if (authContext.hasProfile && !(authContext.isAdmin || authContext.hasHat)) {
       router.push('/play');
     }
   }

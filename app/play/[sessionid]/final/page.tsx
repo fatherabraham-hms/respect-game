@@ -3,8 +3,8 @@ import { getConsensusSessionWinnersAction } from '@/app/actions';
 import { useEffect, useState } from 'react';
 import { ConsensusWinnerModel } from '@/lib/models/consensus-winner.model';
 import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
 import { Spinner } from '@chakra-ui/react';
+
 
 export default function IndexPage({
   params

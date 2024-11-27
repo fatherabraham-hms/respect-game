@@ -282,6 +282,7 @@ export async function isLoggedInUserAdmin(): Promise<boolean> {
   return false;
 }
 
+// TODO - how can we create a hats client on the BE to check if they have the hat here?
 async function _isLoggedInUserAdmin(beSession: SelectUserBeSession): Promise<boolean> {
   debug('isLoggedInUserAdmin: checking if user is admin');
   const admins = process.env.RESPECT_GAME_ADMINS?.split(',') || [];
