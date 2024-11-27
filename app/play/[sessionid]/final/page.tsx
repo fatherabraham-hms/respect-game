@@ -44,7 +44,7 @@ export default function IndexPage({
   }, []);
 
   function pushOnChain() {
-    window.open('https://optimismfractal.web.app/', '_blank', 'noopener,noreferrer');
+    window.open('https://of.frapps.xyz/', '_blank', 'noopener,noreferrer');
   }
 
   return (
@@ -71,10 +71,10 @@ export default function IndexPage({
           </div>
           {
             <Button
-              className="mt-4 w-40 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              className="mt-4 w-50 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
               onClick={() => pushOnChain()}
             >
-              Push onChain!
+              Open Frapps Interface
             </Button>
           }
         </div>
