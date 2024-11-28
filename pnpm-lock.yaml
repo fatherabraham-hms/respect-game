@@ -1644,8 +1644,8 @@ packages:
       ethers: ^6.13.0
       zod: ^3.23.8
 
-  '@ordao/orec@1.0.9':
-    resolution: {integrity: sha512-c9qRV9RRAeYsCrZgmkSy2ucfVQybAuYPsyBEjUGz4PAFsFZzxy/Ev+X1SZ6yRzX96e4fRvqD0IPfGPhddkXRsg==}
+  '@ordao/orec@1.0.12':
+    resolution: {integrity: sha512-cCPszEIFF//n0IJTnSQtv/4sWD31Q8EVZys/sdGgGqaeeCc3MDUbB9MgzMU3NmqAXQF3q3mzaKoqtGENqBXfdQ==}
 
   '@ordao/ortypes@1.0.10':
     resolution: {integrity: sha512-liBTa02P4IQZZY39PfunsKSMLu+yONLZyikcj+bH/flDmzUU4EntPSrK1+x7Ji+YXyUsDZ7CMYzRJdEBu304HA==}
@@ -1660,8 +1660,8 @@ packages:
       '@privy-io/react-auth': ^1.93.0
       react: ^18.3.1
 
-  '@ordao/respect1155@1.0.9':
-    resolution: {integrity: sha512-oU0BOjSy6vHlgbjZ545TazWY0RofjyLCajU2cL5AFArhGz53+8kC/UOcWeiYXur86JLCXzMSVPHhqyS/GBzPDg==}
+  '@ordao/respect1155@1.0.12':
+    resolution: {integrity: sha512-RNwkU7Krf/xkpXNFh3dSnuq4yht5PNBJmGgGadLUgd94Mt77yYdmM/+sRfbwb8Jecu2HYxDo3jS/U2BH9UB4eA==}
 
   '@ordao/ts-utils@1.0.5':
     resolution: {integrity: sha512-o7BsGMf9jvvjTKl+ga9Xpb63TgQERmH1r6gqilGJF46VCCvbNDqJYz1XDvsKuWTC7avmjy8af6nhuToMIMriqg==}
@@ -7089,16 +7089,20 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@ordao/orec@1.0.9':
+  '@ordao/orec@1.0.12(bufferutil@4.0.8)(utf-8-validate@5.0.10)':
     dependencies:
       '@openzeppelin/contracts': 5.1.0
       dotenv: 16.4.5
+      ethers: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
 
   '@ordao/ortypes@1.0.10(bufferutil@4.0.8)(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typescript@5.4.5)(utf-8-validate@5.0.10)(zod@3.23.8)':
     dependencies:
       '@ordao/ethers-decode-error': 1.0.5(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))
-      '@ordao/orec': 1.0.9
-      '@ordao/respect1155': 1.0.9
+      '@ordao/orec': 1.0.12(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+      '@ordao/respect1155': 1.0.12(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       '@ordao/ts-utils': 1.0.5
       chai: 5.1.2
       ethers: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
@@ -7117,10 +7121,14 @@ snapshots:
       '@privy-io/react-auth': 1.94.2(@solana/web3.js@1.95.4(bufferutil@4.0.8)(encoding@0.1.13)(utf-8-validate@5.0.10))(@types/react@18.3.2)(bs58@4.0.1)(bufferutil@4.0.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.4.5)(utf-8-validate@5.0.10)(zod@3.23.8)
       react: 18.3.1
 
-  '@ordao/respect1155@1.0.9':
+  '@ordao/respect1155@1.0.12(bufferutil@4.0.8)(utf-8-validate@5.0.10)':
     dependencies:
       '@openzeppelin/contracts': 5.1.0
-      '@ordao/orec': 1.0.9
+      '@ordao/orec': 1.0.12(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+      ethers: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
 
   '@ordao/ts-utils@1.0.5': {}
 
