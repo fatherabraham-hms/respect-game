@@ -3,7 +3,6 @@ import { getConsensusSessionWinnersAction } from '@/app/actions';
 import { useEffect, useState } from 'react';
 import { ConsensusWinnerModel } from '@/lib/models/consensus-winner.model';
 import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
 import { Spinner } from '@chakra-ui/react';
 
 export default function IndexPage({
@@ -44,7 +43,15 @@ export default function IndexPage({
   }, []);
 
   function pushOnChain() {
-    window.open('https://of.frapps.xyz/', '_blank', 'noopener,noreferrer');
+    const params = new URLSearchParams();
+    params.append('groupnumber', '1');
+    consensusRankings.map((winner, index) => {
+      if (winner) {
+        params.append(`vote${index + 1}`, winner.walletaddress);
+      }
+    });
+    // add the params to the url
+    window.open(`https://of.frapps.xyz?${params.toString()}`, '_blank', 'noopener,noreferrer');
   }
 
   return (

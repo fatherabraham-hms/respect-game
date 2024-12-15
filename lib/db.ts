@@ -567,12 +567,14 @@ export async function setSingleRankingConsensus(
  */
 export async function getConsensusWinnersRankingsAndWalletAddresses(sessionid: number) {
   return db.select({
+    votedFor: consensusStatus.votedfor,
     rankingvalue: consensusStatus.rankingvalue,
     walletaddress: users.walletaddress,
     name: users.name
   }).from(consensusStatus)
     .innerJoin(users, eq(users.id, consensusStatus.votedfor))
     .where(eq(consensusStatus.sessionid, sessionid))
+    .groupBy(consensusStatus.votedfor, consensusStatus.rankingvalue, users.walletaddress, users.name)
     .orderBy(desc(consensusStatus.rankingvalue));
 }
 
