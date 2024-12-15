@@ -28,6 +28,7 @@
     "@types/react-dom": "18.3.0",
     "@vercel/analytics": "^1.2.2",
     "autoprefixer": "^10.4.19",
+    "bs58": "^4.0.1",
     "bufferutil": "^4.0.8",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
