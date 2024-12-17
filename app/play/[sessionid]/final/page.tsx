@@ -3,12 +3,11 @@ import { getConsensusSessionWinnersAction } from '@/app/actions';
 import { useEffect, useMemo, useState } from 'react';
 import { ConsensusWinnerModel } from '@/lib/models/consensus-winner.model';
 import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
-import { useOrclient } from '@ordao/privy-react-orclient';
 import { Spinner } from '@chakra-ui/react';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import toast from 'react-hot-toast';
 import { randomBytes } from 'crypto';
+import { useOrclient } from '@ordao/privy-react-orclient';
 
 export default function IndexPage({
                                     params
@@ -94,6 +93,15 @@ export default function IndexPage({
     makeOrecProposal().then(() => {
       toast.success('Submitted On Chain!');
     });
+    // const params = new URLSearchParams();
+    // params.append('groupnumber', '1');
+    // consensusRankings.map((winner, index) => {
+    //   if (winner) {
+    //     params.append(`vote${index + 1}`, winner.walletaddress);
+    //   }
+    // });
+    // // add the params to the url
+    // window.open(`https://of.frapps.xyz?${params.toString()}`, '_blank', 'noopener,noreferrer');
   }
 
   return (

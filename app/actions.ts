@@ -550,7 +550,18 @@ export async function getConsensusSessionWinnersAction(consensusSessionId: numbe
   if (currentConsensusStatus[0].sessionstatus !== 2) {
     throw new Error('Voting not finished');
   }
-  return getConsensusWinnersRankingsAndWalletAddresses(consensusSessionId);
+  const finalConsensus = await getConsensusWinnersRankingsAndWalletAddresses(consensusSessionId);
+  if (!finalConsensus || finalConsensus.length === 0) {
+    throw new Error('No consensus winners found');
+  }
+  // don't return userids in votedFor to the FE
+  return finalConsensus.map((winner) => {
+    return {
+      rankingvalue: winner.rankingvalue,
+      walletaddress: winner.walletaddress,
+      name: winner.name
+    };
+  });
 }
 
 async function _hasConsensusOnRankingAction(context: UserBeContext, consensusSessionId: number, rankingValue: number) {
