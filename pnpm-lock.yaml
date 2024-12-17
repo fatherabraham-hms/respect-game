@@ -29,9 +29,9 @@ importers:
       '@neondatabase/serverless':
         specifier: ^0.9.5
         version: 0.9.5
-      '@ordao/privy-react-orclient':
-        specifier: ^1.0.13
-        version: 1.0.13(@ordao/orclient@1.0.11(@ordao/ortypes@1.0.10(bufferutil@4.0.8)(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typescript@5.4.5)(utf-8-validate@5.0.10)(zod@3.23.8))(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typescript@5.4.5)(zod@3.23.8))(@privy-io/react-auth@1.94.2(@solana/web3.js@1.95.4(bufferutil@4.0.8)(encoding@0.1.13)(utf-8-validate@5.0.10))(@types/react@18.3.2)(bs58@4.0.1)(bufferutil@4.0.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.4.5)(utf-8-validate@5.0.10)(zod@3.23.8))(react@18.3.1)
+      '@ordao/orclient':
+        specifier: ^1.0.15
+        version: 1.0.15(@ordao/ortypes@1.0.10(bufferutil@4.0.8)(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typescript@5.4.5)(utf-8-validate@5.0.10)(zod@3.23.8))(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typescript@5.4.5)(zod@3.23.8)
       '@privy-io/react-auth':
         specifier: ^1.94.2
         version: 1.94.2(@solana/web3.js@1.95.4(bufferutil@4.0.8)(encoding@0.1.13)(utf-8-validate@5.0.10))(@types/react@18.3.2)(bs58@4.0.1)(bufferutil@4.0.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.4.5)(utf-8-validate@5.0.10)(zod@3.23.8)
@@ -1637,8 +1637,8 @@ packages:
     peerDependencies:
       ethers: ^6.0.0
 
-  '@ordao/orclient@1.0.11':
-    resolution: {integrity: sha512-8VptmuGIiKvj329lynNGGqguQCzDx+mUJveOZlSve44ffsW5fQ/E64Wxpw2fky2R1jplki47DKrWUHtIKjKu3Q==}
+  '@ordao/orclient@1.0.15':
+    resolution: {integrity: sha512-TQDqembHJ/D24IaRrzQEjRLQC1vw7/4KkMuE3JPgKYml41BxlOHYxolTut+H0PwkC+YENXbikt2PySF4ntG01g==}
     peerDependencies:
       '@ordao/ortypes': ^1.0.3
       ethers: ^6.13.0
@@ -1652,13 +1652,6 @@ packages:
     peerDependencies:
       ethers: ^6.13.0
       zod: ^3.23.8
-
-  '@ordao/privy-react-orclient@1.0.13':
-    resolution: {integrity: sha512-Y8cUZBUvvFBL34NzeT1lcpuF1rOY2QDJ13sAmVcHTJS/V/ob7uMBk8sH7R0jSPbYPCtsVs8mHOnazbP40cFnHg==}
-    peerDependencies:
-      '@ordao/orclient': ^1.0.6
-      '@privy-io/react-auth': ^1.93.0
-      react: ^18.3.1
 
   '@ordao/respect1155@1.0.12':
     resolution: {integrity: sha512-RNwkU7Krf/xkpXNFh3dSnuq4yht5PNBJmGgGadLUgd94Mt77yYdmM/+sRfbwb8Jecu2HYxDo3jS/U2BH9UB4eA==}
@@ -7077,7 +7070,7 @@ snapshots:
     dependencies:
       ethers: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
 
-  '@ordao/orclient@1.0.11(@ordao/ortypes@1.0.10(bufferutil@4.0.8)(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typescript@5.4.5)(utf-8-validate@5.0.10)(zod@3.23.8))(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typescript@5.4.5)(zod@3.23.8)':
+  '@ordao/orclient@1.0.15(@ordao/ortypes@1.0.10(bufferutil@4.0.8)(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typescript@5.4.5)(utf-8-validate@5.0.10)(zod@3.23.8))(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typescript@5.4.5)(zod@3.23.8)':
     dependencies:
       '@ordao/ortypes': 1.0.10(bufferutil@4.0.8)(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typescript@5.4.5)(utf-8-validate@5.0.10)(zod@3.23.8)
       '@ordao/ts-utils': 1.0.5
@@ -7114,12 +7107,6 @@ snapshots:
       - bufferutil
       - typescript
       - utf-8-validate
-
-  '@ordao/privy-react-orclient@1.0.13(@ordao/orclient@1.0.11(@ordao/ortypes@1.0.10(bufferutil@4.0.8)(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typescript@5.4.5)(utf-8-validate@5.0.10)(zod@3.23.8))(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typescript@5.4.5)(zod@3.23.8))(@privy-io/react-auth@1.94.2(@solana/web3.js@1.95.4(bufferutil@4.0.8)(encoding@0.1.13)(utf-8-validate@5.0.10))(@types/react@18.3.2)(bs58@4.0.1)(bufferutil@4.0.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.4.5)(utf-8-validate@5.0.10)(zod@3.23.8))(react@18.3.1)':
-    dependencies:
-      '@ordao/orclient': 1.0.11(@ordao/ortypes@1.0.10(bufferutil@4.0.8)(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typescript@5.4.5)(utf-8-validate@5.0.10)(zod@3.23.8))(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(typescript@5.4.5)(zod@3.23.8)
-      '@privy-io/react-auth': 1.94.2(@solana/web3.js@1.95.4(bufferutil@4.0.8)(encoding@0.1.13)(utf-8-validate@5.0.10))(@types/react@18.3.2)(bs58@4.0.1)(bufferutil@4.0.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.4.5)(utf-8-validate@5.0.10)(zod@3.23.8)
-      react: 18.3.1
 
   '@ordao/respect1155@1.0.12(bufferutil@4.0.8)(utf-8-validate@5.0.10)':
     dependencies:
