@@ -8,11 +8,10 @@ import { usePrivy, useWallets } from '@privy-io/react-auth';
 import toast from 'react-hot-toast';
 import { randomBytes } from 'crypto';
 import { useOrclient } from '@ordao/privy-react-orclient';
+import { useRouter } from 'next/navigation';
+import { DeploymentSpec } from "@ordao/orclient/createOrclient.js";
 
-export default function IndexPage({
-                                    params
-                                  }: {
-  params: { sessionid: string };
+export default function IndexPage({params}: { params: { sessionid: string };
 }) {
   const [consensusRankings, setConsensusRankings] = useState<
     ConsensusWinnerModel[]
@@ -22,6 +21,7 @@ export default function IndexPage({
   const {
     user,
   } = usePrivy();
+  // const conWallets = useWallets();
 
   // const contact = getContract({
   //   address: '',
@@ -39,6 +39,8 @@ export default function IndexPage({
   );
 
   useEffect(() => {
+    // getOrclient();
+
     getConsensusSessionWinnersAction(parseInt(params.sessionid)).then(
       (winnersResp) => {
         if (winnersResp && winnersResp.length > 0) {
@@ -50,16 +52,23 @@ export default function IndexPage({
     );
   });
 
-  const wallet = user?.wallet;
-  const conWallets = useWallets();
-  // TODO: Is this the right way to select a wallet?
-  const userWallet = useMemo(() => {
-    if (conWallets && conWallets.ready) {
-      return conWallets.wallets.find(w => w.address === wallet?.address);
-    }
-  }, [wallet]);
-
-  const orclient = useOrclient('op-sepolia-1', userWallet);
+  // function getOrclient() {
+  //   const wallet = user?.wallet;
+  //   // TODO: Is this the right way to select a wallet?
+  //   const userWallet = useMemo(() => {
+  //     if (conWallets && conWallets.ready) {
+  //       return conWallets.wallets.find(w => w.address === wallet?.address);
+  //     }
+  //   }, [wallet]);
+  //
+  //   const orclient = useOrclient('op-sepolia-1', userWallet);
+  //   if (orclient) {
+  //     return orclient;
+  //   } else {
+  //     toast.error('Could not connect to orclient/blockchain');
+  //     return null;
+  //   }
+  // }
 
   async function makeOrecProposal() {
     console.log('click');
